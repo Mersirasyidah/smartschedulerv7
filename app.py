@@ -1,5 +1,13 @@
-import streamlit as st
-from database import load_database
+import os
+import pandas as pd
+
+DATABASE = "data/database_scheduler.xlsx"
+
+print("Folder kerja :", os.getcwd())
+print("File ada :", os.path.exists(DATABASE))
+print("Lokasi :", DATABASE)
+
+excel = pd.ExcelFile(DATABASE)
 
 # Konfigurasi halaman
 st.set_page_config(
