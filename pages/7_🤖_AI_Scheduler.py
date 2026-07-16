@@ -1,5 +1,9 @@
 import streamlit as st
+import pandas as pd
+
 from database import load_database
+from scheduler import Scheduler
+
 
 # =====================================
 # Konfigurasi Halaman
@@ -11,8 +15,10 @@ st.set_page_config(
     layout="wide"
 )
 
+
 st.title("🤖 AI Scheduler")
 st.caption("Smart Scheduler V7")
+
 
 # =====================================
 # Load Database
@@ -30,35 +36,53 @@ except Exception as e:
 
     st.stop()
 
+
+
+# =====================================
+# Ambil Data Database
+# =====================================
+
+guru = db["Guru"]
+
+mengajar = db["Guru_Mengajar"]
+
+rombel = db["Rombel"]
+
+
+
 # =====================================
 # Statistik
 # =====================================
 
-guru = db["Guru"]
-mengajar = db["Guru_Mengajar"]
-rombel = db["Rombel"]
-
 col1, col2, col3 = st.columns(3)
+
 
 col1.metric(
     "Guru",
     len(guru)
 )
 
+
 col2.metric(
     "Mengajar",
     len(mengajar)
 )
+
 
 col3.metric(
     "Rombel",
     len(rombel)
 )
 
+
+
 st.divider()
 
-from scheduler import Scheduler
-import pandas as pd
+
+
+# =====================================
+# Tombol Generate
+# =====================================
 
 
 if st.button("🚀 Generate Jadwal"):
@@ -69,95 +93,179 @@ if st.button("🚀 Generate Jadwal"):
     )
 
 
-    # ==========================
-    # DATA SEMENTARA
-    # nanti diganti database
-    # ==========================
+    # ==============================
+    # Konversi Database
+    # ==============================
 
 
-    data_guru = [
-        "Budi",
-        "Siti",
-        "Andi"
-    ]
+    try:
 
 
-    data_kelas = [
-        "7A",
-        "7B",
-        "8A"
-    ]
+        # Data guru
+
+        data_guru = (
+            guru["nama_guru"]
+            .tolist()
+        )
 
 
-    data_mapel = [
-        "Matematika",
-        "Informatika",
-        "IPA"
-    ]
+        # Data kelas
+
+        data_kelas = (
+            rombel["kelas"]
+            .tolist()
+        )
 
 
+        # Mata pelajaran
 
-    data_jadwal = pd.DataFrame({
-
-        "guru":[
-            "Budi",
-            "Siti",
-            "Andi"
-        ],
-
-        "kelas":[
-            "7A",
-            "7B",
-            "8A"
-        ],
-
-        "mapel":[
-            "Matematika",
-            "Informatika",
-            "IPA"
-        ],
-
-        "jam":[
-            5,
-            3,
-            4
-        ]
-
-    })
+        data_mapel = (
+            mengajar["mapel"]
+            .unique()
+            .tolist()
+        )
 
 
 
-    # Membuat engine
+        # Beban mengajar
+
+        data_jadwal = pd.DataFrame({
+
+            "guru":
+                mengajar["nama_guru"],
+
+
+            "kelas":
+                mengajar["kelas"],
+
+
+            "mapel":
+                mengajar["mapel"],
+
+
+            "jam":
+                mengajar["jam"]
+
+        })
+
+
+
+    except Exception as e:
+
+
+        st.error(
+            "Format database belum sesuai"
+        )
+
+
+        st.exception(e)
+
+        st.stop()
+
+
+
+    # ==============================
+    # Membuat Scheduler Engine
+    # ==============================
+
 
     scheduler = Scheduler(
 
         data_guru,
+
         data_kelas,
+
         data_mapel,
+
         data_jadwal
 
     )
 
 
 
-    # membuat kemungkinan jadwal
+    st.write(
+        "Data Scheduler siap:"
+    )
+
+
+    st.write(
+        f"Guru : {len(data_guru)}"
+    )
+
+
+    st.write(
+        f"Kelas : {len(data_kelas)}"
+    )
+
+
+    st.write(
+        f"Mapel : {len(data_mapel)}"
+    )
+
+
+
+    # ==============================
+    # Generate Index
+    # ==============================
+
 
     scheduler.create_index()
 
 
 
-    # membuat variabel AI
+    st.success(
+        "Index jadwal berhasil dibuat"
+    )
+
+
+
+    # ==============================
+    # Membuat Variabel AI
+    # ==============================
+
 
     scheduler.create_variables()
 
 
 
-    # pasang aturan
+    st.success(
+        "Variabel AI berhasil dibuat"
+    )
 
-    scheduler.build_constraints()
+
+
+    # ==============================
+    # Pasang Constraint
+    # ==============================
+
+
+    if hasattr(
+        scheduler,
+        "build_constraints"
+    ):
+
+
+        scheduler.build_constraints()
+
+
+        st.success(
+            "Constraint berhasil dipasang"
+        )
+
+
+    else:
+
+
+        st.warning(
+            """
+            Engine constraint belum tersedia.
+            Pastikan scheduler.py sudah menggunakan
+            Bagian 2.
+            """
+        )
 
 
 
     st.success(
-        "Engine Scheduler berhasil dibuat"
+        "🤖 AI Scheduler Engine siap dijalankan"
     )
