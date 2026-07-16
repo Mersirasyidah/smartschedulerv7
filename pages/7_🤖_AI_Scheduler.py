@@ -292,6 +292,57 @@ def kelas_bentrok(jadwal, kelas, hari, jam):
 # HIT
 
 # =====================================================
+# MENCARI SLOT TERBAIK
+# =====================================================
+
+def cari_slot(
+    jadwal,
+    kelas,
+    guru_nama,
+    hari,
+    panjang
+):
+
+    daftar_jam = JAM[hari]
+
+    for awal in daftar_jam:
+
+        akhir = awal + panjang - 1
+
+        # Jangan melewati jam terakhir
+        if akhir > daftar_jam[-1]:
+            continue
+
+        boleh = True
+
+        for jam in range(awal, akhir + 1):
+
+            # kelas sudah terisi
+            if not slot_kosong(
+                jadwal,
+                kelas,
+                hari,
+                jam
+            ):
+                boleh = False
+                break
+
+            # guru bentrok
+            if guru_bentrok(
+                jadwal,
+                guru_nama,
+                hari,
+                jam
+            ):
+                boleh = False
+                break
+
+        if boleh:
+            return awal
+
+    return None
+
+# =====================================================
 # MENEMPATKAN SATU BLOK JP
 # =====================================================
 
