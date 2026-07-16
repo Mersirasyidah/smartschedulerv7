@@ -1,15 +1,17 @@
 import streamlit as st
-import pandas as pd
 
 
 st.set_page_config(
-    page_title="Jadwal Pelajaran",
+    page_title="Jadwal",
     page_icon="📅",
     layout="wide"
 )
 
 
-st.title("📅 Jadwal Pelajaran")
+st.title(
+    "📅 Jadwal Pelajaran"
+)
+
 
 st.caption(
     "Smart Scheduler V7"
@@ -18,117 +20,126 @@ st.caption(
 
 
 # =====================================
-# Membaca hasil jadwal
+# CEK HASIL GENERATE
 # =====================================
 
-try:
 
-    jadwal = pd.read_csv(
-        "hasil_jadwal.csv"
-    )
-
-
-except:
+if "jadwal" not in st.session_state:
 
 
     st.warning(
         """
         Jadwal belum tersedia.
 
-        Silakan Generate Jadwal
-        terlebih dahulu.
+        Silakan masuk ke menu:
+        🤖 AI Scheduler
+
+        kemudian klik:
+        🚀 Generate Jadwal
         """
     )
+
 
     st.stop()
 
 
 
+jadwal = st.session_state["jadwal"]
+
+
+
 # =====================================
-# Tampilan
+# TAMPILKAN SEMUA
 # =====================================
 
 
-tab1, tab2, tab3 = st.tabs(
-    [
-        "📋 Semua Jadwal",
-        "👨‍🏫 Per Guru",
-        "🏫 Per Kelas"
-    ]
+st.subheader(
+    "📋 Semua Jadwal"
+)
+
+
+st.dataframe(
+
+    jadwal,
+
+    use_container_width=True,
+
+    hide_index=True
+
 )
 
 
 
-# =====================================
-# Semua Jadwal
-# =====================================
-
-
-with tab1:
-
-
-    st.dataframe(
-
-        jadwal,
-
-        use_container_width=True
-
-    )
+st.divider()
 
 
 
 # =====================================
-# Guru
+# PER KELAS
 # =====================================
 
 
-with tab2:
+st.subheader(
+    "🏫 Jadwal Per Kelas"
+)
 
 
-    guru = st.selectbox(
+kelas = st.selectbox(
 
-        "Pilih Guru",
+    "Pilih Kelas",
 
-        jadwal["Guru"].unique()
+    jadwal["Kelas"].unique()
 
-    )
-
-
-    hasil = jadwal[
-        jadwal["Guru"] == guru
-    ]
-
-
-    st.dataframe(
-        hasil,
-        use_container_width=True
-    )
+)
 
 
 
-# =====================================
-# Kelas
-# =====================================
+st.dataframe(
 
-
-with tab3:
-
-
-    kelas = st.selectbox(
-
-        "Pilih Kelas",
-
-        jadwal["Kelas"].unique()
-
-    )
-
-
-    hasil = jadwal[
+    jadwal[
         jadwal["Kelas"] == kelas
-    ]
+    ],
+
+    use_container_width=True,
+
+    hide_index=True
+
+)
 
 
-    st.dataframe(
-        hasil,
-        use_container_width=True
-    )
+
+st.divider()
+
+
+
+# =====================================
+# PER GURU
+# =====================================
+
+
+st.subheader(
+    "👨‍🏫 Jadwal Per Guru"
+)
+
+
+guru = st.selectbox(
+
+    "Pilih Guru",
+
+    jadwal["Guru"].unique()
+
+)
+
+
+
+st.dataframe(
+
+    jadwal[
+        jadwal["Guru"] == guru
+    ],
+
+    use_container_width=True,
+
+    hide_index=True
+
+)
