@@ -6,7 +6,7 @@ from scheduler import Scheduler
 
 
 # =====================================
-# KONFIGURASI HALAMAN
+# KONFIGURASI
 # =====================================
 
 st.set_page_config(
@@ -20,6 +20,7 @@ st.title("🤖 AI Scheduler")
 st.caption("Smart Scheduler V7")
 
 
+
 # =====================================
 # LOAD DATABASE
 # =====================================
@@ -27,7 +28,6 @@ st.caption("Smart Scheduler V7")
 try:
 
     db = load_database()
-
 
 except Exception as e:
 
@@ -39,28 +39,11 @@ except Exception as e:
 
 
 
-# =====================================
-# AMBIL TABEL DATABASE
-# =====================================
+guru = db["Guru"]
 
-try:
+mengajar = db["Guru_Mengajar"]
 
-    guru = db["Guru"]
-
-    mengajar = db["Guru_Mengajar"]
-
-    rombel = db["Rombel"]
-
-
-except Exception as e:
-
-    st.error(
-        "Tabel database belum lengkap"
-    )
-
-    st.exception(e)
-
-    st.stop()
+rombel = db["Rombel"]
 
 
 
@@ -68,23 +51,23 @@ except Exception as e:
 # STATISTIK
 # =====================================
 
-col1, col2, col3 = st.columns(3)
+c1,c2,c3 = st.columns(3)
 
 
-col1.metric(
-    "Jumlah Guru",
+c1.metric(
+    "Guru",
     len(guru)
 )
 
 
-col2.metric(
-    "Data Mengajar",
+c2.metric(
+    "Mengajar",
     len(mengajar)
 )
 
 
-col3.metric(
-    "Jumlah Rombel",
+c3.metric(
+    "Rombel",
     len(rombel)
 )
 
@@ -94,7 +77,7 @@ st.divider()
 
 
 # =====================================
-# GENERATE JADWAL
+# GENERATE
 # =====================================
 
 if st.button(
@@ -103,75 +86,26 @@ if st.button(
 ):
 
 
-    st.info(
-        "Menyiapkan AI Scheduler..."
-    )
-
-
-    # =================================
-    # TAMPILKAN DATABASE
-    # =================================
-
-    with st.expander(
-        "🔎 Lihat Data Database"
-    ):
-
-
-        st.subheader(
-            "Data Guru"
-        )
-
-        st.dataframe(
-            guru
-        )
-
-
-        st.subheader(
-            "Data Guru Mengajar"
-        )
-
-        st.dataframe(
-            mengajar
-        )
-
-
-        st.subheader(
-            "Data Rombel"
-        )
-
-        st.dataframe(
-            rombel
-        )
-
-
-
-    # =================================
-    # AMBIL DATA GURU
-    # =================================
-
     try:
 
 
+        st.info(
+            "Membaca data sekolah..."
+        )
+
+
+
+        # =============================
+        # DATA GURU
+        # =============================
+
         if "nama_guru" in guru.columns:
 
-            data_guru = guru[
-                "nama_guru"
-            ].tolist()
-
+            data_guru = guru["nama_guru"].tolist()
 
         elif "nama" in guru.columns:
 
-            data_guru = guru[
-                "nama"
-            ].tolist()
-
-
-        elif "guru" in guru.columns:
-
-            data_guru = guru[
-                "guru"
-            ].tolist()
-
+            data_guru = guru["nama"].tolist()
 
         else:
 
@@ -179,24 +113,18 @@ if st.button(
 
 
 
-        # ==============================
-        # KELAS
-        # ==============================
+        # =============================
+        # DATA KELAS
+        # =============================
 
 
         if "kelas" in rombel.columns:
 
-            data_kelas = rombel[
-                "kelas"
-            ].tolist()
-
+            data_kelas = rombel["kelas"].tolist()
 
         elif "nama_kelas" in rombel.columns:
 
-            data_kelas = rombel[
-                "nama_kelas"
-            ].tolist()
-
+            data_kelas = rombel["nama_kelas"].tolist()
 
         else:
 
@@ -204,63 +132,46 @@ if st.button(
 
 
 
-        # ==============================
-        # MAPEL
-        # ==============================
+        # =============================
+        # DATA MAPEL
+        # =============================
 
 
         if "mapel" in mengajar.columns:
 
-            data_mapel = mengajar[
-                "mapel"
-            ].unique().tolist()
-
+            data_mapel = (
+                mengajar["mapel"]
+                .unique()
+                .tolist()
+            )
 
         elif "mata_pelajaran" in mengajar.columns:
 
-            data_mapel = mengajar[
-                "mata_pelajaran"
-            ].unique().tolist()
-
+            data_mapel = (
+                mengajar["mata_pelajaran"]
+                .unique()
+                .tolist()
+            )
 
         else:
 
-            data_mapel = mengajar.iloc[:,1].unique().tolist()
+            data_mapel = (
+                mengajar.iloc[:,1]
+                .unique()
+                .tolist()
+            )
 
 
 
-    except Exception as e:
-
-
-        st.error(
-            "Gagal membaca data sekolah"
+        st.success(
+            "Data berhasil dibaca"
         )
 
-        st.exception(e)
-
-        st.stop()
 
 
-
-    st.success(
-        "Database berhasil dibaca"
-    )
-
-
-
-    # =================================
-    # DATA BEBAN MENGAJAR
-    # =================================
-
-    data_jadwal = mengajar.copy()
-
-
-
-    # =================================
-    # BUAT ENGINE
-    # =================================
-
-    try:
+        # =============================
+        # BUAT ENGINE
+        # =============================
 
 
         scheduler = Scheduler(
@@ -271,245 +182,120 @@ if st.button(
 
             data_mapel,
 
-            data_jadwal
+            mengajar
 
         )
 
 
         st.success(
-            "Scheduler Engine berhasil dibuat"
+            "Scheduler Engine dibuat"
         )
 
 
-    except Exception as e:
 
-
-        st.error(
-            "Gagal membuat Scheduler"
-        )
-
-        st.exception(e)
-
-        st.stop()
-
-
-
-    # =================================
-    # INDEX
-    # =================================
-
-    scheduler.create_index()
-
-
-    st.success(
-        "Index jadwal berhasil dibuat"
-    )
-
-
-
-    # =================================
-    # VARIABLE
-    # =================================
-
-
-    scheduler.create_variables()
-
-
-    st.success(
-        "Variable AI berhasil dibuat"
-    )
-
-
-
-    # =================================
-    # CONSTRAINT
-    # =================================
-
-
-    scheduler.build_constraints()
-
-
-    st.success(
-        "Constraint berhasil dipasang"
-    )
-
-
-
-    st.divider()
-
-
-
-    # =================================
-    # SOLVER
-    # =================================
-
-
-    with st.spinner(
-
-        "🤖 AI sedang mencari jadwal..."
-
-    ):
-
-
-        solusi = scheduler.solve()
-
-
-
-    if solusi:
+        scheduler.create_index()
 
 
         st.success(
-            "🎉 Jadwal berhasil dibuat"
+            "Index jadwal dibuat"
         )
 
 
-        hasil = scheduler.to_dataframe()
+
+        scheduler.create_variables()
 
 
-
-        # SIMPAN HASIL
-
-        if not hasil.empty:
-
-
-            hasil.to_csv(
-
-                "hasil_jadwal.csv",
-
-                index=False
-
-            )
-
-
-
-        # =================================
-        # TAMPILKAN HASIL
-        # =================================
-
-
-        st.subheader(
-            "📅 HASIL JADWAL"
+        st.success(
+            "Variable AI dibuat"
         )
 
 
-        if not hasil.empty:
+
+        scheduler.build_constraints()
 
 
-            st.dataframe(
-
-                hasil,
-
-                use_container_width=True,
-
-                hide_index=True
-
-            )
-
-
-            st.divider()
+        st.success(
+            "Constraint dipasang"
+        )
 
 
 
-            # =================================
-            # FILTER KELAS
-            # =================================
+        # =============================
+        # SOLVER
+        # =============================
 
 
-            st.subheader(
-                "🏫 Jadwal Per Kelas"
-            )
+        with st.spinner(
+            "🤖 AI mencari jadwal..."
+        ):
 
 
-            kelas_pilih = st.selectbox(
-
-                "Pilih Kelas",
-
-                hasil["Kelas"].unique()
-
-            )
-
-
-            hasil_kelas = hasil[
-
-                hasil["Kelas"] == kelas_pilih
-
-            ]
-
-
-            st.dataframe(
-
-                hasil_kelas,
-
-                use_container_width=True,
-
-                hide_index=True
-
-            )
+            solusi = scheduler.solve()
 
 
 
-            st.divider()
+        if solusi:
+
+
+            hasil = scheduler.to_dataframe()
 
 
 
-            # =================================
-            # FILTER GURU
-            # =================================
+            if hasil.empty:
 
 
-            st.subheader(
-                "👨‍🏫 Jadwal Per Guru"
-            )
+                st.warning(
+                    "AI selesai tetapi jadwal kosong"
+                )
 
 
-            guru_pilih = st.selectbox(
-
-                "Pilih Guru",
-
-                hasil["Guru"].unique()
-
-            )
+            else:
 
 
-            hasil_guru = hasil[
+                # SIMPAN KE SESSION
 
-                hasil["Guru"] == guru_pilih
-
-            ]
+                st.session_state["jadwal"] = hasil
 
 
-            st.dataframe(
 
-                hasil_guru,
+                st.success(
+                    "🎉 Jadwal berhasil dibuat"
+                )
 
-                use_container_width=True,
 
-                hide_index=True
 
-            )
+                st.subheader(
+                    "📅 HASIL JADWAL"
+                )
+
+
+
+                st.dataframe(
+
+                    hasil,
+
+                    use_container_width=True,
+
+                    hide_index=True
+
+                )
 
 
 
         else:
 
 
-            st.warning(
-                "Solver berhasil tetapi jadwal kosong"
+            st.error(
+                "AI tidak menemukan solusi"
             )
 
 
 
-    else:
+    except Exception as e:
 
 
         st.error(
-            """
-            AI tidak menemukan solusi.
-
-            Periksa:
-            - Beban jam mengajar
-            - Jumlah ruang
-            - Bentrok guru
-            - Bentrok kelas
-            """
+            "Terjadi kesalahan"
         )
+
+        st.exception(e)
