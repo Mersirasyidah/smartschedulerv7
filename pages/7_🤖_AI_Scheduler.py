@@ -40,7 +40,7 @@ except Exception as e:
 
 
 # =====================================
-# AMBIL DATA DATABASE
+# AMBIL TABEL DATABASE
 # =====================================
 
 try:
@@ -94,7 +94,7 @@ st.divider()
 
 
 # =====================================
-# TOMBOL GENERATE
+# GENERATE JADWAL
 # =====================================
 
 if st.button(
@@ -109,15 +109,16 @@ if st.button(
 
 
     # =================================
-    # CEK STRUKTUR DATABASE
+    # TAMPILKAN DATABASE
     # =================================
 
     with st.expander(
-        "🔎 Lihat Struktur Database"
+        "🔎 Lihat Data Database"
     ):
 
-        st.write(
-            "Tabel Guru"
+
+        st.subheader(
+            "Data Guru"
         )
 
         st.dataframe(
@@ -125,8 +126,8 @@ if st.button(
         )
 
 
-        st.write(
-            "Tabel Guru_Mengajar"
+        st.subheader(
+            "Data Guru Mengajar"
         )
 
         st.dataframe(
@@ -134,8 +135,8 @@ if st.button(
         )
 
 
-        st.write(
-            "Tabel Rombel"
+        st.subheader(
+            "Data Rombel"
         )
 
         st.dataframe(
@@ -153,103 +154,78 @@ if st.button(
 
         if "nama_guru" in guru.columns:
 
-            data_guru = (
-                guru["nama_guru"]
-                .tolist()
-            )
+            data_guru = guru[
+                "nama_guru"
+            ].tolist()
 
 
         elif "nama" in guru.columns:
 
-            data_guru = (
-                guru["nama"]
-                .tolist()
-            )
+            data_guru = guru[
+                "nama"
+            ].tolist()
 
 
         elif "guru" in guru.columns:
 
-            data_guru = (
-                guru["guru"]
-                .tolist()
-            )
+            data_guru = guru[
+                "guru"
+            ].tolist()
 
 
         else:
 
-            data_guru = (
-                guru
-                .iloc[:,1]
-                .tolist()
-            )
+            data_guru = guru.iloc[:,1].tolist()
 
 
 
         # ==============================
-        # DATA KELAS
+        # KELAS
         # ==============================
 
 
         if "kelas" in rombel.columns:
 
-            data_kelas = (
-                rombel["kelas"]
-                .tolist()
-            )
+            data_kelas = rombel[
+                "kelas"
+            ].tolist()
 
 
         elif "nama_kelas" in rombel.columns:
 
-            data_kelas = (
-                rombel["nama_kelas"]
-                .tolist()
-            )
+            data_kelas = rombel[
+                "nama_kelas"
+            ].tolist()
 
 
         else:
 
-            data_kelas = (
-                rombel
-                .iloc[:,1]
-                .tolist()
-            )
+            data_kelas = rombel.iloc[:,1].tolist()
 
 
 
         # ==============================
-        # DATA MAPEL
+        # MAPEL
         # ==============================
 
 
         if "mapel" in mengajar.columns:
 
-
-            data_mapel = (
-                mengajar["mapel"]
-                .unique()
-                .tolist()
-            )
+            data_mapel = mengajar[
+                "mapel"
+            ].unique().tolist()
 
 
         elif "mata_pelajaran" in mengajar.columns:
 
-
-            data_mapel = (
-                mengajar["mata_pelajaran"]
-                .unique()
-                .tolist()
-            )
+            data_mapel = mengajar[
+                "mata_pelajaran"
+            ].unique().tolist()
 
 
         else:
 
-
-            data_mapel = (
-                mengajar
-                .iloc[:,1]
-                .unique()
-                .tolist()
-            )
+            data_mapel = mengajar.iloc[:,1].unique().tolist()
 
 
 
@@ -257,9 +233,8 @@ if st.button(
 
 
         st.error(
-            "Gagal membaca data database"
+            "Gagal membaca data sekolah"
         )
-
 
         st.exception(e)
 
@@ -267,43 +242,8 @@ if st.button(
 
 
 
-    # =================================
-    # TAMPILKAN HASIL BACA DATABASE
-    # =================================
-
-
     st.success(
         "Database berhasil dibaca"
-    )
-
-
-    col1,col2,col3 = st.columns(3)
-
-
-    col1.write(
-        "Guru"
-    )
-
-    col1.write(
-        data_guru
-    )
-
-
-    col2.write(
-        "Kelas"
-    )
-
-    col2.write(
-        data_kelas
-    )
-
-
-    col3.write(
-        "Mapel"
-    )
-
-    col3.write(
-        data_mapel
     )
 
 
@@ -312,15 +252,13 @@ if st.button(
     # DATA BEBAN MENGAJAR
     # =================================
 
-
     data_jadwal = mengajar.copy()
 
 
 
     # =================================
-    # MEMBUAT ENGINE
+    # BUAT ENGINE
     # =================================
-
 
     try:
 
@@ -338,7 +276,6 @@ if st.button(
         )
 
 
-
         st.success(
             "Scheduler Engine berhasil dibuat"
         )
@@ -348,7 +285,7 @@ if st.button(
 
 
         st.error(
-            "Gagal membuat Scheduler Engine"
+            "Gagal membuat Scheduler"
         )
 
         st.exception(e)
@@ -358,60 +295,29 @@ if st.button(
 
 
     # =================================
-    # MEMBUAT INDEX
+    # INDEX
     # =================================
 
-
-    try:
-
-
-        scheduler.create_index()
+    scheduler.create_index()
 
 
-        st.success(
-            "Index jadwal berhasil dibuat"
-        )
-
-
-    except Exception as e:
-
-
-        st.error(
-            "Gagal membuat index"
-        )
-
-        st.exception(e)
-
-        st.stop()
+    st.success(
+        "Index jadwal berhasil dibuat"
+    )
 
 
 
     # =================================
-    # VARIABLE AI
+    # VARIABLE
     # =================================
 
 
-    try:
+    scheduler.create_variables()
 
 
-        scheduler.create_variables()
-
-
-        st.success(
-            "Variable AI berhasil dibuat"
-        )
-
-
-    except Exception as e:
-
-
-        st.error(
-            "Gagal membuat variable AI"
-        )
-
-        st.exception(e)
-
-        st.stop()
+    st.success(
+        "Variable AI berhasil dibuat"
+    )
 
 
 
@@ -420,126 +326,190 @@ if st.button(
     # =================================
 
 
-    if hasattr(
-        scheduler,
-        "build_constraints"
-    ):
+    scheduler.build_constraints()
 
 
-        try:
+    st.success(
+        "Constraint berhasil dipasang"
+    )
 
-
-            scheduler.build_constraints()
-
-
-            st.success(
-                "Constraint berhasil dipasang"
-            )
-
-
-        except Exception as e:
-
-
-            st.warning(
-                "Constraint belum dapat dijalankan"
-            )
-
-            st.exception(e)
-
-
-
-    else:
-
-
-        st.warning(
-            """
-            scheduler.py belum memiliki
-            fungsi build_constraints()
-            """)
 
 
     st.divider()
 
 
+
     # =================================
-    # JALANKAN AI SOLVER
+    # SOLVER
     # =================================
 
 
-    try:
+    with st.spinner(
+
+        "🤖 AI sedang mencari jadwal..."
+
+    ):
 
 
-        with st.spinner(
-            "🤖 AI sedang mencari jadwal terbaik..."
-        ):
-
-
-            solusi = scheduler.solve()
+        solusi = scheduler.solve()
 
 
 
-        if solusi:
+    if solusi:
 
 
-            st.success(
-                "🎉 Jadwal berhasil dibuat"
+        st.success(
+            "🎉 Jadwal berhasil dibuat"
+        )
+
+
+        hasil = scheduler.to_dataframe()
+
+
+
+        # SIMPAN HASIL
+
+        if not hasil.empty:
+
+
+            hasil.to_csv(
+
+                "hasil_jadwal.csv",
+
+                index=False
+
             )
 
 
-            hasil = scheduler.to_dataframe()
 
+        # =================================
+        # TAMPILKAN HASIL
+        # =================================
+
+
+        st.subheader(
+            "📅 HASIL JADWAL"
+        )
+
+
+        if not hasil.empty:
+
+
+            st.dataframe(
+
+                hasil,
+
+                use_container_width=True,
+
+                hide_index=True
+
+            )
+
+
+            st.divider()
+
+
+
+            # =================================
+            # FILTER KELAS
+            # =================================
 
 
             st.subheader(
-                "📅 Hasil Jadwal"
+                "🏫 Jadwal Per Kelas"
+            )
+
+
+            kelas_pilih = st.selectbox(
+
+                "Pilih Kelas",
+
+                hasil["Kelas"].unique()
+
+            )
+
+
+            hasil_kelas = hasil[
+
+                hasil["Kelas"] == kelas_pilih
+
+            ]
+
+
+            st.dataframe(
+
+                hasil_kelas,
+
+                use_container_width=True,
+
+                hide_index=True
+
             )
 
 
 
-            if not hasil.empty:
+            st.divider()
 
 
-                st.dataframe(
 
-                    hasil,
-
-                    use_container_width=True
-
-                )
+            # =================================
+            # FILTER GURU
+            # =================================
 
 
-            else:
+            st.subheader(
+                "👨‍🏫 Jadwal Per Guru"
+            )
 
 
-                st.warning(
-                    "Solver berhasil tetapi data jadwal kosong"
-                )
+            guru_pilih = st.selectbox(
+
+                "Pilih Guru",
+
+                hasil["Guru"].unique()
+
+            )
+
+
+            hasil_guru = hasil[
+
+                hasil["Guru"] == guru_pilih
+
+            ]
+
+
+            st.dataframe(
+
+                hasil_guru,
+
+                use_container_width=True,
+
+                hide_index=True
+
+            )
 
 
 
         else:
 
 
-            st.error(
-                """
-                AI tidak menemukan jadwal.
-
-                Kemungkinan:
-                - Beban jam terlalu banyak
-                - Guru bentrok
-                - Kelas tidak cukup
-                - Constraint terlalu ketat
-                """
+            st.warning(
+                "Solver berhasil tetapi jadwal kosong"
             )
 
 
 
-    except Exception as e:
+    else:
 
 
         st.error(
-            "Terjadi error saat menjalankan AI Solver"
+            """
+            AI tidak menemukan solusi.
+
+            Periksa:
+            - Beban jam mengajar
+            - Jumlah ruang
+            - Bentrok guru
+            - Bentrok kelas
+            """
         )
-
-
-        st.exception(e)
