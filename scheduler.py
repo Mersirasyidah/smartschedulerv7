@@ -1,40 +1,16 @@
-"""
-==============================================================
-SMART SCHEDULER V7
-Versi 1.0
+# ==========================================================
+# scheduler.py
+# SmartSchedulerV7
+# Bagian 1 : Struktur Dasar dan Persiapan Model
+# ==========================================================
 
-Scheduler Engine
-
-Bagian 1
-- Import Library
-- Membaca Database
-- Konfigurasi
-- Membuat Slot Jadwal
-==============================================================
-"""
-
-import random
-import copy
+from ortools.sat.python import cp_model
 import pandas as pd
+from collections import defaultdict
 
-from database import load_database
-
-# ==========================================================
-# LOAD DATABASE
-# ==========================================================
-
-db = load_database()
-
-guru = db["Guru"]
-
-guru_mengajar = db["Guru_Mengajar"]
-
-rombel = db["Rombel"]
-
-hari_jam = db["Hari_Jam"]
 
 # ==========================================================
-# KONFIGURASI HARI
+# KONFIGURASI WAKTU
 # ==========================================================
 
 HARI = [
@@ -42,554 +18,343 @@ HARI = [
     "Selasa",
     "Rabu",
     "Kamis",
-    "Jumat"
+    "Jumat",
+    "Sabtu"
 ]
 
-# ==========================================================
-# SLOT JP
-# ==========================================================
 
-JP = {
+# Jam pelajaran
+JAM = [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+]
 
-    "Senin":9,
-
-    "Selasa":9,
-
-    "Rabu":9,
-
-    "Kamis":9,
-
-    "Jumat":6
-
-}
 
 # ==========================================================
-# MEMBUAT SLOT JADWAL
+# CLASS SCHEDULER
 # ==========================================================
 
-def buat_jadwal_kosong():
+class Scheduler:
 
-    jadwal = {}
+    def __init__(
+        self,
+        data_guru,
+        data_kelas,
+        data_mapel,
+        data_jadwal=None
+    ):
 
-    daftar_kelas = sorted(
+        """
+        Inisialisasi Scheduler
 
-        rombel["Kelas"].unique()
+        Parameter:
 
-    )
+        data_guru :
+            Data guru
 
-    for kelas in daftar_kelas:
+        data_kelas :
+            Data kelas
 
-        jadwal[kelas] = {}
+        data_mapel :
+            Data mata pelajaran
 
-        for hari in HARI:
+        data_jadwal :
+            Beban jam pelajaran
+        """
 
-            jadwal[kelas][hari] = {}
 
-            for jp in range(1, JP[hari]+1):
+        self.data_guru = data_guru
+        self.data_kelas = data_kelas
+        self.data_mapel = data_mapel
+        self.data_jadwal = data_jadwal
 
-                jadwal[kelas][hari][jp] = None
 
-    return jadwal
+        # Model OR-Tools
+        self.model = cp_model.CpModel()
+
+
+        # Solver
+        self.solver = cp_model.CpSolver()
+
+
+        # Menyimpan variabel jadwal
+
+        self.schedule_vars = {}
+
+
+        # Hasil akhir
+
+        self.result = []
+
+
+        # Load data
+
+        self.guru_list = []
+        self.kelas_list = []
+        self.mapel_list = []
+
+
+        self.prepare_data()
+
+
+
+    # ======================================================
+    # PERSIAPAN DATA
+    # ======================================================
+
+    def prepare_data(self):
+
+        """
+        Mengubah dataframe menjadi list
+        agar mudah digunakan solver
+        """
+
+
+        # Guru
+
+        if isinstance(self.data_guru, pd.DataFrame):
+
+            self.guru_list = (
+                self.data_guru
+                ["nama_guru"]
+                .tolist()
+            )
+
+        else:
+
+            self.guru_list = self.data_guru
+
+
+
+        # Kelas
+
+        if isinstance(self.data_kelas, pd.DataFrame):
+
+            self.kelas_list = (
+                self.data_kelas
+                ["kelas"]
+                .tolist()
+            )
+
+        else:
+
+            self.kelas_list = self.data_kelas
+
+
+
+        # Mata Pelajaran
+
+        if isinstance(self.data_mapel, pd.DataFrame):
+
+            self.mapel_list = (
+                self.data_mapel
+                ["mapel"]
+                .tolist()
+            )
+
+        else:
+
+            self.mapel_list = self.data_mapel
+
+
+
+    # ======================================================
+    # INFORMASI DATA
+    # ======================================================
+
+    def info(self):
+
+        """
+        Menampilkan informasi scheduler
+        """
+
+
+        print("==============================")
+        print(" SMART SCHEDULER V7")
+        print("==============================")
+
+        print(
+            "Jumlah Guru :",
+            len(self.guru_list)
+        )
+
+        print(
+            "Jumlah Kelas :",
+            len(self.kelas_list)
+        )
+
+        print(
+            "Jumlah Mapel :",
+            len(self.mapel_list)
+        )
+
+
+        print("==============================")
+
+
+
+    # ======================================================
+    # MEMBUAT INDEX DATA
+    # ======================================================
+
+
+    def create_index(self):
+
+        """
+        Membuat index untuk solver
+
+        Contoh:
+
+        Guru A
+        Kelas 7A
+        IPA
+
+        Senin jam 1
+
+        """
+
+        self.index = []
+
+
+        for guru in self.guru_list:
+
+            for kelas in self.kelas_list:
+
+                for mapel in self.mapel_list:
+
+                    for hari in HARI:
+
+                        for jam in JAM:
+
+
+                            item = {
+
+                                "guru": guru,
+
+                                "kelas": kelas,
+
+                                "mapel": mapel,
+
+                                "hari": hari,
+
+                                "jam": jam
+
+                            }
+
+
+                            self.index.append(item)
+
+
+
+        return self.index
+
+
+
+    # ======================================================
+    # MEMBUAT VARIABLE SOLVER
+    # ======================================================
+
+
+    def create_variables(self):
+
+        """
+        Membuat variabel boolean:
+
+        1 = dipakai
+        0 = tidak dipakai
+
+        """
+
+
+        for i, item in enumerate(self.index):
+
+
+            var_name = (
+                f"jadwal_{i}"
+            )
+
+
+            self.schedule_vars[i] = (
+                self.model.NewBoolVar(var_name)
+            )
+
+
+
+    # ======================================================
+    # CEK STATUS MODEL
+    # ======================================================
+
+
+    def model_status(self):
+
+        return self.solver.StatusName()
+
+
 
 # ==========================================================
-# DAFTAR KELAS
+# TEST SEDERHANA
 # ==========================================================
 
-def daftar_kelas():
-
-    return sorted(
-
-        rombel["Kelas"].unique()
-
-    )
-
-# ==========================================================
-# DAFTAR GURU
-# ==========================================================
-
-def daftar_guru():
-
-    return sorted(
-
-        guru["Nama Guru"].unique()
-
-    )
-
-# ==========================================================
-# DAFTAR MAPEL
-# ==========================================================
-
-def daftar_mapel():
-
-    return sorted(
-
-        guru_mengajar["Mapel"].unique()
-
-    )
-
-# ==========================================================
-# PARSER PEMBAGIAN JP
-# ==========================================================
-
-def pembagian_jp(data):
-
-    if pd.isna(data):
-
-        return []
-
-    data = str(data)
-
-    data = data.replace(" ", "")
-
-    if data == "":
-
-        return []
-
-    hasil = []
-
-    for item in data.split(","):
-
-        try:
-
-            hasil.append(int(float(item)))
-
-        except:
-
-            pass
-
-    return hasil
-
-# ==========================================================
-# PARSER KELAS
-# ==========================================================
-
-def parser_kelas(teks):
-
-    if pd.isna(teks):
-
-        return []
-
-    teks = str(teks)
-
-    hasil = []
-
-    for item in teks.split(","):
-
-        item = item.strip()
-
-        if item != "":
-
-            hasil.append(item)
-
-    return hasil
-
-# ==========================================================
-# PARSER MAPEL
-# ==========================================================
-
-def parser_mapel(teks):
-
-    if pd.isna(teks):
-
-        return []
-
-    teks = str(teks)
-
-    hasil = []
-
-    for item in teks.split(","):
-
-        item = item.strip()
-
-        if item != "":
-
-            hasil.append(item)
-
-    return hasil
-
-# ==========================================================
-# MEMBUAT DATA MENGAJAR
-# ==========================================================
-
-def buat_data_mengajar():
-
-    data = []
-
-    for _, row in guru_mengajar.iterrows():
-
-        kelas_list = parser_kelas(row["Kelas"])
-
-        mapel_list = parser_mapel(row["Mapel"])
-
-        pembagian = pembagian_jp(row["Pembagian"])
-
-        for kelas in kelas_list:
-
-            for mapel in mapel_list:
-
-                data.append({
-
-                    "ID Guru": row["ID Guru"],
-
-                    "Guru": row["Nama Guru"],
-
-                    "Mapel": mapel,
-
-                    "Kelas": kelas,
-
-                    "JP": int(row["JP"]),
-
-                    "Pembagian": pembagian,
-
-                    "Prioritas": int(row["Prioritas"]),
-
-                    "Hari MGMP": row["Hari MGMP"]
-
-                })
-
-    data = pd.DataFrame(data)
-
-    data = data.sort_values(
-
-        by=[
-
-            "Prioritas",
-
-            "Guru",
-
-            "Mapel",
-
-            "Kelas"
-
-        ]
-
-    )
-
-    return data.reset_index(drop=True)
-
-# ==========================================================
-# CEK DATABASE
-# ==========================================================
-
-def info_database():
-
-    print("="*60)
-
-    print("SMART SCHEDULER V7")
-
-    print("="*60)
-
-    print()
-
-    print("Guru :", len(guru))
-
-    print("Guru Mengajar :", len(guru_mengajar))
-
-    print("Rombel :", len(rombel))
-
-    print("Hari :", len(HARI))
-
-    print()
-
-    print("Jumlah Kelas :", len(daftar_kelas()))
-
-    print("Jumlah Guru :", len(daftar_guru()))
-
-    print()
-
-# ==========================================================
-# MEMBUAT DATA
-# ==========================================================
-
-DATA_MENGAJAR = buat_data_mengajar()
-
-# ==========================================================
-# TEST
-# ==========================================================
 
 if __name__ == "__main__":
 
-    info_database()
 
-    jadwal = buat_jadwal_kosong()
+    guru = [
 
-    print()
+        "Budi",
+        "Siti",
+        "Andi"
 
-    print("Jumlah Data Mengajar :", len(DATA_MENGAJAR))
+    ]
 
-    print()
 
-    print(DATA_MENGAJAR.head())
+    kelas = [
 
-    print()
+        "7A",
+        "7B",
+        "8A"
 
-    print("Slot Jadwal Berhasil Dibuat")
+    ]
 
-    print(jadwal.keys())
 
-# ==========================================================
-# BAGIAN 2
-# VALIDASI PENEMPATAN JADWAL
-# ==========================================================
+    mapel = [
 
-# ----------------------------------------------------------
-# CEK APAKAH SLOT KELAS MASIH KOSONG
-# ----------------------------------------------------------
+        "Matematika",
+        "Informatika",
+        "IPA"
 
-def slot_kosong(jadwal, kelas, hari, jp):
+    ]
 
-    return jadwal[kelas][hari][jp] is None
 
+    scheduler = Scheduler(
 
-# ----------------------------------------------------------
-# CEK APAKAH GURU SUDAH MENGAJAR
-# ----------------------------------------------------------
-
-def guru_bentrok(jadwal, guru, hari, jp):
-
-    for kelas in jadwal:
-
-        isi = jadwal[kelas][hari][jp]
-
-        if isi is None:
-            continue
-
-        if isi["Guru"] == guru:
-            return True
-
-    return False
-
-
-# ----------------------------------------------------------
-# HITUNG JUMLAH JP GURU PER HARI
-# ----------------------------------------------------------
-
-def jumlah_jp_guru(jadwal, guru, hari):
-
-    jumlah = 0
-
-    for kelas in jadwal:
-
-        for jp in jadwal[kelas][hari]:
-
-            isi = jadwal[kelas][hari][jp]
-
-            if isi is None:
-                continue
-
-            if isi["Guru"] == guru:
-                jumlah += 1
-
-    return jumlah
-
-
-# ----------------------------------------------------------
-# CEK HARI MGMP
-# ----------------------------------------------------------
-
-def melanggar_mgmp(guru_row, hari):
-
-    mgmp = str(guru_row["Hari MGMP"]).strip()
-
-    if mgmp == "":
-        return False
-
-    return mgmp.lower() == hari.lower()
-
-
-# ----------------------------------------------------------
-# CEK APAKAH BLOK JP MUAT
-# ----------------------------------------------------------
-
-def blok_muatan(jadwal, kelas, hari, jp_awal, panjang):
-
-    jp_terakhir = JP[hari]
-
-    if jp_awal + panjang - 1 > jp_terakhir:
-        return False
-
-    for jp in range(jp_awal, jp_awal + panjang):
-
-        if not slot_kosong(jadwal, kelas, hari, jp):
-            return False
-
-    return True
-
-
-# ----------------------------------------------------------
-# TEMPATKAN BLOK JP
-# ----------------------------------------------------------
-
-def isi_blok(
-
-    jadwal,
-
-    guru,
-
-    mapel,
-
-    kelas,
-
-    hari,
-
-    jp_awal,
-
-    panjang
-
-):
-
-    for jp in range(jp_awal, jp_awal + panjang):
-
-        jadwal[kelas][hari][jp] = {
-
-            "Guru": guru,
-
-            "Mapel": mapel,
-
-            "JP": jp
-
-        }
-
-
-# ----------------------------------------------------------
-# HAPUS BLOK
-# ----------------------------------------------------------
-
-def hapus_blok(
-
-    jadwal,
-
-    kelas,
-
-    hari,
-
-    jp_awal,
-
-    panjang
-
-):
-
-    for jp in range(jp_awal, jp_awal + panjang):
-
-        jadwal[kelas][hari][jp] = None
-
-
-# ----------------------------------------------------------
-# CEK APAKAH GURU MASIH BOLEH MENGAJAR
-# ----------------------------------------------------------
-
-def guru_boleh_mengajar(
-
-    jadwal,
-
-    guru_row,
-
-    hari,
-
-    jp,
-
-    panjang
-
-):
-
-    guru = guru_row["Nama Guru"]
-
-    if guru_bentrok(jadwal, guru, hari, jp):
-        return False
-
-    if melanggar_mgmp(guru_row, hari):
-        return False
-
-    jp_hari = jumlah_jp_guru(jadwal, guru, hari)
-
-    if jp_hari + panjang > 8:
-        return False
-
-    return True
-
-
-# ----------------------------------------------------------
-# CEK PENEMPATAN SATU BLOK
-# ----------------------------------------------------------
-
-def boleh_ditempatkan(
-
-    jadwal,
-
-    guru_row,
-
-    kelas,
-
-    hari,
-
-    jp_awal,
-
-    panjang
-
-):
-
-    if not blok_muatan(
-
-        jadwal,
+        guru,
 
         kelas,
 
-        hari,
-
-        jp_awal,
-
-        panjang
-
-    ):
-
-        return False
-
-    if not guru_boleh_mengajar(
-
-        jadwal,
-
-        guru_row,
-
-        hari,
-
-        jp_awal,
-
-        panjang
-
-    ):
-
-        return False
-
-    return True
-
-
-# ==========================================================
-# TEST VALIDASI
-# ==========================================================
-
-if __name__ == "__main__":
-
-    jadwal = buat_jadwal_kosong()
-
-    print()
-
-    print("TEST VALIDASI")
-
-    print()
-
-    print(
-
-        slot_kosong(
-
-            jadwal,
-
-            daftar_kelas()[0],
-
-            "Senin",
-
-            1
-
-        )
+        mapel
 
     )
 
+
+    scheduler.info()
+
+
+    scheduler.create_index()
+
+
+    scheduler.create_variables()
+
+
+    print(
+        "Jumlah variabel:",
+        len(
+            scheduler.schedule_vars
+        )
+    )
