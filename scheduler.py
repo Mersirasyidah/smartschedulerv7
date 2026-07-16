@@ -1,400 +1,595 @@
 """
-=========================================================
+==============================================================
 SMART SCHEDULER V7
-AI TIMETABLING ENGINE
-Menggunakan Google OR-Tools CP-SAT Solver
+Versi 1.0
 
-BAGIAN 1
+Scheduler Engine
+
+Bagian 1
 - Import Library
-- Load Model
-- Inisialisasi Solver
-- Variabel Global
-=========================================================
+- Membaca Database
+- Konfigurasi
+- Membuat Slot Jadwal
+==============================================================
 """
 
-# =====================================================
-# IMPORT
-# =====================================================
-
-from ortools.sat.python import cp_model
-
+import random
+import copy
 import pandas as pd
 
-from models import load_models
+from database import load_database
 
-from config import HARI
-from config import JAM
-from config import MAX_JP_GURU
+# ==========================================================
+# LOAD DATABASE
+# ==========================================================
 
-# =====================================================
-# LOAD DATABASE MODEL
-# =====================================================
+db = load_database()
 
-model_data = load_models()
+guru = db["Guru"]
 
-# =====================================================
-# MEMBUAT SOLVER
-# =====================================================
+guru_mengajar = db["Guru_Mengajar"]
 
-solver_model = cp_model.CpModel()
+rombel = db["Rombel"]
 
-# =====================================================
-# OBJECT SOLVER
-# =====================================================
+hari_jam = db["Hari_Jam"]
 
-solver = cp_model.CpSolver()
+# ==========================================================
+# KONFIGURASI HARI
+# ==========================================================
 
-# =====================================================
-# VARIABEL KEPUTUSAN
-# x[(guru,kelas,hari,jam,mapel)]
-# =====================================================
+HARI = [
+    "Senin",
+    "Selasa",
+    "Rabu",
+    "Kamis",
+    "Jumat"
+]
 
-x = {}
-
-# =====================================================
-# LIST GURU
-# =====================================================
-
-GURU = model_data.guru
-
-# =====================================================
-# LIST ROMBEL
-# =====================================================
-
-ROMBEL = model_data.rombel
-
-# =====================================================
-# LIST MENGAJAR
-# =====================================================
-
-MENGAJAR = model_data.mengajar
-
-# =====================================================
-# SLOT HARI
-# =====================================================
-
-HARI_LIST = HARI
-
-# =====================================================
+# ==========================================================
 # SLOT JP
-# =====================================================
+# ==========================================================
 
-JAM_LIST = JAM
+JP = {
 
-# =====================================================
-# MEMBUAT VARIABEL BOOLEAN
-# =====================================================
+    "Senin":9,
 
-def buat_variabel():
+    "Selasa":9,
 
-    print()
+    "Rabu":9,
+
+    "Kamis":9,
+
+    "Jumat":6
+
+}
+
+# ==========================================================
+# MEMBUAT SLOT JADWAL
+# ==========================================================
+
+def buat_jadwal_kosong():
+
+    jadwal = {}
+
+    daftar_kelas = sorted(
+
+        rombel["Kelas"].unique()
+
+    )
+
+    for kelas in daftar_kelas:
+
+        jadwal[kelas] = {}
+
+        for hari in HARI:
+
+            jadwal[kelas][hari] = {}
+
+            for jp in range(1, JP[hari]+1):
+
+                jadwal[kelas][hari][jp] = None
+
+    return jadwal
+
+# ==========================================================
+# DAFTAR KELAS
+# ==========================================================
+
+def daftar_kelas():
+
+    return sorted(
+
+        rombel["Kelas"].unique()
+
+    )
+
+# ==========================================================
+# DAFTAR GURU
+# ==========================================================
+
+def daftar_guru():
+
+    return sorted(
+
+        guru["Nama Guru"].unique()
+
+    )
+
+# ==========================================================
+# DAFTAR MAPEL
+# ==========================================================
+
+def daftar_mapel():
+
+    return sorted(
+
+        guru_mengajar["Mapel"].unique()
+
+    )
+
+# ==========================================================
+# PARSER PEMBAGIAN JP
+# ==========================================================
+
+def pembagian_jp(data):
+
+    if pd.isna(data):
+
+        return []
+
+    data = str(data)
+
+    data = data.replace(" ", "")
+
+    if data == "":
+
+        return []
+
+    hasil = []
+
+    for item in data.split(","):
+
+        try:
+
+            hasil.append(int(float(item)))
+
+        except:
+
+            pass
+
+    return hasil
+
+# ==========================================================
+# PARSER KELAS
+# ==========================================================
+
+def parser_kelas(teks):
+
+    if pd.isna(teks):
+
+        return []
+
+    teks = str(teks)
+
+    hasil = []
+
+    for item in teks.split(","):
+
+        item = item.strip()
+
+        if item != "":
+
+            hasil.append(item)
+
+    return hasil
+
+# ==========================================================
+# PARSER MAPEL
+# ==========================================================
+
+def parser_mapel(teks):
+
+    if pd.isna(teks):
+
+        return []
+
+    teks = str(teks)
+
+    hasil = []
+
+    for item in teks.split(","):
+
+        item = item.strip()
+
+        if item != "":
+
+            hasil.append(item)
+
+    return hasil
+
+# ==========================================================
+# MEMBUAT DATA MENGAJAR
+# ==========================================================
+
+def buat_data_mengajar():
+
+    data = []
+
+    for _, row in guru_mengajar.iterrows():
+
+        kelas_list = parser_kelas(row["Kelas"])
+
+        mapel_list = parser_mapel(row["Mapel"])
+
+        pembagian = pembagian_jp(row["Pembagian"])
+
+        for kelas in kelas_list:
+
+            for mapel in mapel_list:
+
+                data.append({
+
+                    "ID Guru": row["ID Guru"],
+
+                    "Guru": row["Nama Guru"],
+
+                    "Mapel": mapel,
+
+                    "Kelas": kelas,
+
+                    "JP": int(row["JP"]),
+
+                    "Pembagian": pembagian,
+
+                    "Prioritas": int(row["Prioritas"]),
+
+                    "Hari MGMP": row["Hari MGMP"]
+
+                })
+
+    data = pd.DataFrame(data)
+
+    data = data.sort_values(
+
+        by=[
+
+            "Prioritas",
+
+            "Guru",
+
+            "Mapel",
+
+            "Kelas"
+
+        ]
+
+    )
+
+    return data.reset_index(drop=True)
+
+# ==========================================================
+# CEK DATABASE
+# ==========================================================
+
+def info_database():
 
     print("="*60)
 
-    print("MEMBUAT VARIABEL")
-
-    print("="*60)
-
-    jumlah = 0
-
-    for item in MENGAJAR:
-
-        for hari in HARI_LIST:
-
-            for jam in JAM_LIST[hari]:
-
-                key = (
-
-                    item.id_guru,
-
-                    item.kelas,
-
-                    hari,
-
-                    jam,
-
-                    item.mapel
-
-                )
-
-                x[key] = solver_model.NewBoolVar(
-
-                    f"{item.id_guru}_{item.kelas}_{hari}_{jam}_{item.mapel}"
-
-                )
-
-                jumlah += 1
-
-    print()
-
-    print("Jumlah Variable :", jumlah)
-
-    return jumlah
-
-# =====================================================
-# INFO DATABASE
-# =====================================================
-
-def info():
-
-    print()
-
-    print("="*60)
-
-    print("DATABASE")
+    print("SMART SCHEDULER V7")
 
     print("="*60)
 
     print()
 
-    print("Guru :", len(GURU))
+    print("Guru :", len(guru))
 
-    print("Rombel :", len(ROMBEL))
+    print("Guru Mengajar :", len(guru_mengajar))
 
-    print("Mengajar :", len(MENGAJAR))
+    print("Rombel :", len(rombel))
 
-    print()
-
-# =====================================================
-# CEK ORTOOLS
-# =====================================================
-
-def test_solver():
+    print("Hari :", len(HARI))
 
     print()
 
-    print("="*60)
+    print("Jumlah Kelas :", len(daftar_kelas()))
 
-    print("GOOGLE ORTOOLS")
-
-    print("="*60)
+    print("Jumlah Guru :", len(daftar_guru()))
 
     print()
 
-    print(cp_model.__name__)
+# ==========================================================
+# MEMBUAT DATA
+# ==========================================================
 
-# =====================================================
-# MAIN
-# =====================================================
+DATA_MENGAJAR = buat_data_mengajar()
+
+# ==========================================================
+# TEST
+# ==========================================================
 
 if __name__ == "__main__":
 
-    info()
+    info_database()
 
-    test_solver()
+    jadwal = buat_jadwal_kosong()
 
-    buat_variabel()
+    print()
 
-# =====================================================
+    print("Jumlah Data Mengajar :", len(DATA_MENGAJAR))
+
+    print()
+
+    print(DATA_MENGAJAR.head())
+
+    print()
+
+    print("Slot Jadwal Berhasil Dibuat")
+
+    print(jadwal.keys())
+
+# ==========================================================
 # BAGIAN 2
-# CONSTRAINT DASAR
-# =====================================================
+# VALIDASI PENEMPATAN JADWAL
+# ==========================================================
 
-print("\nMembangun Constraint Dasar...")
+# ----------------------------------------------------------
+# CEK APAKAH SLOT KELAS MASIH KOSONG
+# ----------------------------------------------------------
 
-# =====================================================
-# 1. SATU KELAS HANYA SATU MAPEL
-# =====================================================
+def slot_kosong(jadwal, kelas, hari, jp):
 
-def constraint_kelas():
-
-    print("Constraint : Satu kelas satu mapel")
-
-    jumlah = 0
-
-    for rombel in ROMBEL:
-
-        kelas = rombel.nama
-
-        for hari in HARI_LIST:
-
-            for jam in JAM_LIST[hari]:
-
-                variabel = []
-
-                for item in MENGAJAR:
-
-                    if item.kelas != kelas:
-                        continue
-
-                    key = (
-                        item.id_guru,
-                        item.kelas,
-                        hari,
-                        jam,
-                        item.mapel
-                    )
-
-                    variabel.append(x[key])
-
-                if len(variabel) > 0:
-
-                    solver_model.Add(
-                        sum(variabel) <= 1
-                    )
-
-                    jumlah += 1
-
-    print("Constraint dibuat :", jumlah)
+    return jadwal[kelas][hari][jp] is None
 
 
-# =====================================================
-# 2. GURU TIDAK BOLEH BENTROK
-# =====================================================
+# ----------------------------------------------------------
+# CEK APAKAH GURU SUDAH MENGAJAR
+# ----------------------------------------------------------
 
-def constraint_guru():
+def guru_bentrok(jadwal, guru, hari, jp):
 
-    print("Constraint : Guru tidak bentrok")
+    for kelas in jadwal:
+
+        isi = jadwal[kelas][hari][jp]
+
+        if isi is None:
+            continue
+
+        if isi["Guru"] == guru:
+            return True
+
+    return False
+
+
+# ----------------------------------------------------------
+# HITUNG JUMLAH JP GURU PER HARI
+# ----------------------------------------------------------
+
+def jumlah_jp_guru(jadwal, guru, hari):
 
     jumlah = 0
 
-    for guru in GURU:
+    for kelas in jadwal:
 
-        nama = guru.nama
+        for jp in jadwal[kelas][hari]:
 
-        idguru = guru.id_guru
+            isi = jadwal[kelas][hari][jp]
 
-        for hari in HARI_LIST:
+            if isi is None:
+                continue
 
-            for jam in JAM_LIST[hari]:
+            if isi["Guru"] == guru:
+                jumlah += 1
 
-                variabel = []
-
-                for item in MENGAJAR:
-
-                    if item.id_guru != idguru:
-                        continue
-
-                    key = (
-                        item.id_guru,
-                        item.kelas,
-                        hari,
-                        jam,
-                        item.mapel
-                    )
-
-                    variabel.append(x[key])
-
-                if len(variabel) > 0:
-
-                    solver_model.Add(
-                        sum(variabel) <= 1
-                    )
-
-                    jumlah += 1
-
-    print("Constraint dibuat :", jumlah)
+    return jumlah
 
 
-# =====================================================
-# 3. TOTAL JP SESUAI DATA
-# =====================================================
+# ----------------------------------------------------------
+# CEK HARI MGMP
+# ----------------------------------------------------------
 
-def constraint_jumlah_jp():
+def melanggar_mgmp(guru_row, hari):
 
-    print("Constraint : Total JP")
+    mgmp = str(guru_row["Hari MGMP"]).strip()
 
-    jumlah = 0
+    if mgmp == "":
+        return False
 
-    for item in MENGAJAR:
+    return mgmp.lower() == hari.lower()
 
-        variabel = []
 
-        for hari in HARI_LIST:
+# ----------------------------------------------------------
+# CEK APAKAH BLOK JP MUAT
+# ----------------------------------------------------------
 
-            for jam in JAM_LIST[hari]:
+def blok_muatan(jadwal, kelas, hari, jp_awal, panjang):
 
-                key = (
-                    item.id_guru,
-                    item.kelas,
-                    hari,
-                    jam,
-                    item.mapel
-                )
+    jp_terakhir = JP[hari]
 
-                variabel.append(
-                    x[key]
-                )
+    if jp_awal + panjang - 1 > jp_terakhir:
+        return False
 
-        solver_model.Add(
+    for jp in range(jp_awal, jp_awal + panjang):
 
-            sum(variabel) == item.jp
+        if not slot_kosong(jadwal, kelas, hari, jp):
+            return False
+
+    return True
+
+
+# ----------------------------------------------------------
+# TEMPATKAN BLOK JP
+# ----------------------------------------------------------
+
+def isi_blok(
+
+    jadwal,
+
+    guru,
+
+    mapel,
+
+    kelas,
+
+    hari,
+
+    jp_awal,
+
+    panjang
+
+):
+
+    for jp in range(jp_awal, jp_awal + panjang):
+
+        jadwal[kelas][hari][jp] = {
+
+            "Guru": guru,
+
+            "Mapel": mapel,
+
+            "JP": jp
+
+        }
+
+
+# ----------------------------------------------------------
+# HAPUS BLOK
+# ----------------------------------------------------------
+
+def hapus_blok(
+
+    jadwal,
+
+    kelas,
+
+    hari,
+
+    jp_awal,
+
+    panjang
+
+):
+
+    for jp in range(jp_awal, jp_awal + panjang):
+
+        jadwal[kelas][hari][jp] = None
+
+
+# ----------------------------------------------------------
+# CEK APAKAH GURU MASIH BOLEH MENGAJAR
+# ----------------------------------------------------------
+
+def guru_boleh_mengajar(
+
+    jadwal,
+
+    guru_row,
+
+    hari,
+
+    jp,
+
+    panjang
+
+):
+
+    guru = guru_row["Nama Guru"]
+
+    if guru_bentrok(jadwal, guru, hari, jp):
+        return False
+
+    if melanggar_mgmp(guru_row, hari):
+        return False
+
+    jp_hari = jumlah_jp_guru(jadwal, guru, hari)
+
+    if jp_hari + panjang > 8:
+        return False
+
+    return True
+
+
+# ----------------------------------------------------------
+# CEK PENEMPATAN SATU BLOK
+# ----------------------------------------------------------
+
+def boleh_ditempatkan(
+
+    jadwal,
+
+    guru_row,
+
+    kelas,
+
+    hari,
+
+    jp_awal,
+
+    panjang
+
+):
+
+    if not blok_muatan(
+
+        jadwal,
+
+        kelas,
+
+        hari,
+
+        jp_awal,
+
+        panjang
+
+    ):
+
+        return False
+
+    if not guru_boleh_mengajar(
+
+        jadwal,
+
+        guru_row,
+
+        hari,
+
+        jp_awal,
+
+        panjang
+
+    ):
+
+        return False
+
+    return True
+
+
+# ==========================================================
+# TEST VALIDASI
+# ==========================================================
+
+if __name__ == "__main__":
+
+    jadwal = buat_jadwal_kosong()
+
+    print()
+
+    print("TEST VALIDASI")
+
+    print()
+
+    print(
+
+        slot_kosong(
+
+            jadwal,
+
+            daftar_kelas()[0],
+
+            "Senin",
+
+            1
 
         )
 
-        jumlah += 1
-
-    print("Constraint dibuat :", jumlah)
-
-
-# =====================================================
-# 4. MAKSIMAL JP GURU PER HARI
-# =====================================================
-
-def constraint_max_jp_guru():
-
-    print("Constraint : Maksimal JP Guru")
-
-    jumlah = 0
-
-    for guru in GURU:
-
-        for hari in HARI_LIST:
-
-            variabel = []
-
-            for item in MENGAJAR:
-
-                if item.id_guru != guru.id_guru:
-                    continue
-
-                for jam in JAM_LIST[hari]:
-
-                    key = (
-                        item.id_guru,
-                        item.kelas,
-                        hari,
-                        jam,
-                        item.mapel
-                    )
-
-                    variabel.append(x[key])
-
-            if len(variabel) > 0:
-
-                solver_model.Add(
-
-                    sum(variabel) <= MAX_JP_GURU
-
-                )
-
-                jumlah += 1
-
-    print("Constraint dibuat :", jumlah)
-
-
-# =====================================================
-# MEMBANGUN SEMUA CONSTRAINT DASAR
-# =====================================================
-
-def build_constraint():
-
-    print()
-
-    print("=" * 60)
-    print("MEMBANGUN CONSTRAINT")
-    print("=" * 60)
-
-    constraint_kelas()
-
-    constraint_guru()
-
-    constraint_jumlah_jp()
-
-    constraint_max_jp_guru()
-
-    print()
-
-    print("Constraint dasar selesai.")
-
+    )
 
