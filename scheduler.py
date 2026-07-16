@@ -358,3 +358,363 @@ if __name__ == "__main__":
             scheduler.schedule_vars
         )
     )
+
+# ==========================================================
+# BAGIAN 2
+# CONSTRAINT AI SCHEDULER
+# ==========================================================
+
+
+    # ======================================================
+    # CONSTRAINT GURU
+    # ======================================================
+
+    def constraint_guru_tidak_bentrok(self):
+
+        """
+        Satu guru hanya boleh mengajar
+        satu kelas dalam satu waktu
+
+        Contoh salah:
+
+        Senin Jam 1
+
+        Budi -> 7A Matematika
+        Budi -> 8A IPA
+
+        Tidak boleh
+        """
+
+
+        for guru in self.guru_list:
+
+
+            for hari in HARI:
+
+
+                for jam in JAM:
+
+
+                    guru_slot = []
+
+
+                    for i, item in enumerate(self.index):
+
+
+                        if (
+                            item["guru"] == guru
+                            and
+                            item["hari"] == hari
+                            and
+                            item["jam"] == jam
+                        ):
+
+                            guru_slot.append(
+                                self.schedule_vars[i]
+                            )
+
+
+
+                    if guru_slot:
+
+
+                        self.model.Add(
+                            sum(guru_slot) <= 1
+                        )
+
+
+
+
+
+    # ======================================================
+    # CONSTRAINT KELAS
+    # ======================================================
+
+
+    def constraint_kelas_tidak_bentrok(self):
+
+        """
+        Satu kelas tidak boleh
+        mendapatkan dua mapel
+        pada waktu yang sama
+
+        """
+
+
+        for kelas in self.kelas_list:
+
+
+            for hari in HARI:
+
+
+                for jam in JAM:
+
+
+                    kelas_slot = []
+
+
+                    for i,item in enumerate(self.index):
+
+
+                        if (
+
+                            item["kelas"] == kelas
+
+                            and
+
+                            item["hari"] == hari
+
+                            and
+
+                            item["jam"] == jam
+
+                        ):
+
+
+                            kelas_slot.append(
+
+                                self.schedule_vars[i]
+
+                            )
+
+
+
+                    if kelas_slot:
+
+
+                        self.model.Add(
+
+                            sum(kelas_slot) <= 1
+
+                        )
+
+
+
+
+
+    # ======================================================
+    # CONSTRAINT BEBAN JAM MAPEL
+    # ======================================================
+
+
+    def constraint_jumlah_jam(self):
+
+        """
+        Mengatur jumlah jam pelajaran
+
+        Contoh:
+
+        Matematika kelas 7A
+        = 5 JP
+
+        """
+
+
+
+        if self.data_jadwal is None:
+
+            return
+
+
+
+        for _, row in self.data_jadwal.iterrows():
+
+
+            guru = row["guru"]
+
+            kelas = row["kelas"]
+
+            mapel = row["mapel"]
+
+            kebutuhan = row["jam"]
+
+
+
+            daftar_variabel = []
+
+
+
+            for i,item in enumerate(self.index):
+
+
+                if (
+
+                    item["guru"] == guru
+
+                    and
+
+                    item["kelas"] == kelas
+
+                    and
+
+                    item["mapel"] == mapel
+
+                ):
+
+
+                    daftar_variabel.append(
+
+                        self.schedule_vars[i]
+
+                    )
+
+
+
+            if daftar_variabel:
+
+
+                self.model.Add(
+
+                    sum(daftar_variabel)
+
+                    == kebutuhan
+
+                )
+
+
+
+
+
+    # ======================================================
+    # CONSTRAINT HARI MGMP
+    # ======================================================
+
+
+    def constraint_mgmp_guru(self, data_mgmp):
+
+        """
+        Guru tidak dijadwalkan
+        pada hari MGMP
+
+
+        Contoh:
+
+        Budi MGMP Rabu
+
+        Maka:
+        Rabu semua jam kosong
+
+        """
+
+
+        for guru, hari_larangan in data_mgmp.items():
+
+
+            for i,item in enumerate(self.index):
+
+
+                if (
+
+                    item["guru"] == guru
+
+                    and
+
+                    item["hari"] == hari_larangan
+
+                ):
+
+
+                    self.model.Add(
+
+                        self.schedule_vars[i] == 0
+
+                    )
+
+
+
+
+
+    # ======================================================
+    # CONSTRAINT JAM KHUSUS
+    # ======================================================
+
+
+    def constraint_jam_jumat(self):
+
+        """
+        Aturan hari Jumat
+
+        Misal:
+
+        Jumat hanya sampai jam 6
+
+        """
+
+
+        for i,item in enumerate(self.index):
+
+
+            if (
+
+                item["hari"] == "Jumat"
+
+                and
+
+                item["jam"] > 6
+
+            ):
+
+
+                self.model.Add(
+
+                    self.schedule_vars[i] == 0
+
+                )
+
+
+
+
+
+    # ======================================================
+    # MEMASANG SEMUA CONSTRAINT
+    # ======================================================
+
+
+    def build_constraints(
+            self,
+            data_mgmp=None
+        ):
+
+
+        print(
+            "Memasang constraint..."
+        )
+
+
+        # guru tidak bentrok
+
+        self.constraint_guru_tidak_bentrok()
+
+
+
+        # kelas tidak bentrok
+
+        self.constraint_kelas_tidak_bentrok()
+
+
+
+        # jumlah jam
+
+        self.constraint_jumlah_jam()
+
+
+
+        # MGMP
+
+        if data_mgmp:
+
+            self.constraint_mgmp_guru(
+                data_mgmp
+            )
+
+
+
+        # Jumat
+
+        self.constraint_jam_jumat()
+
+
+
+        print(
+            "Constraint selesai"
+        )
