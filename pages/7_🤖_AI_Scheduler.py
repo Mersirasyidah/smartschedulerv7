@@ -292,6 +292,59 @@ def kelas_bentrok(jadwal, kelas, hari, jam):
 # HIT
 
 # =====================================================
+# MENEMPATKAN SATU BLOK JP
+# =====================================================
+
+def tempatkan_blok(
+    jadwal,
+    kelas,
+    guru_id,
+    guru_nama,
+    mapel,
+    panjang
+):
+    """
+    Menempatkan satu blok JP (misal 2 JP atau 3 JP)
+    """
+
+    # Coba setiap hari
+    for hari in HARI:
+
+        # Cek aturan MGMP
+        if hari == hari_mgmp(guru_id):
+
+            # Hari MGMP hanya boleh mengajar jam 1-4
+            if panjang > 4:
+                continue
+
+        # Cari slot yang berurutan
+        awal = cari_slot(
+            jadwal,
+            kelas,
+            guru_nama,
+            hari,
+            panjang
+        )
+
+        if awal is None:
+            continue
+
+        # Isi slot
+        for jam in range(awal, awal + panjang):
+
+            jadwal[kelas][hari][jam] = {
+
+                "Guru": guru_nama,
+                "Mapel": mapel,
+                "ID Guru": guru_id
+
+            }
+
+        return True
+
+    return False
+
+# =====================================================
 # GENERATE JADWAL
 # =====================================================
 
