@@ -432,4 +432,184 @@ def tempatkan_blok(
 
     return False
 
+# =====================================
+# GENERATE JADWAL
+# =====================================
 
+def generate_jadwal():
+
+    jadwal = buat_slot_jadwal()
+
+    data = data_prioritas()
+
+    gagal = []
+
+    berhasil = 0
+
+    for _, row in data.iterrows():
+
+        guru_id = row["ID Guru"]
+
+        guru_nama = row["Nama Guru"]
+
+        mapel = row["Mapel"]
+
+        kelas = row["Kelas"]
+
+        jp = int(row["JP"])
+
+        pembagian = pembagian_jp(row["Pembagian"])
+
+        sukses = True
+
+        # contoh :
+        # 5 JP -> [2,2,1]
+
+        for blok in pembagian:
+
+            hasil = tempatkan_blok(
+
+                jadwal,
+
+                kelas,
+
+                guru_id,
+
+                guru_nama,
+
+                mapel,
+
+                blok
+
+            )
+
+            if not hasil:
+
+                sukses = False
+
+                break
+
+        if sukses:
+
+            berhasil += 1
+
+        else:
+
+            gagal.append({
+
+                "Guru": guru_nama,
+
+                "Mapel": mapel,
+
+                "Kelas": kelas,
+
+                "JP": jp
+
+            })
+
+    return jadwal, gagal, berhasil
+
+
+# =====================================
+# UBAH JADWAL MENJADI DATAFRAME
+# =====================================
+
+def jadwal_dataframe(jadwal):
+
+    rows = []
+
+    for kelas in jadwal:
+
+        for hari in HARI:
+
+            for jam in JAM[hari]:
+
+                isi = jadwal[kelas][hari][jam]
+
+                if isi is None:
+
+                    guru = ""
+
+                    mapel = ""
+
+                else:
+
+                    guru = isi["Guru"]
+
+                    mapel = isi["Mapel"]
+
+                rows.append({
+
+                    "Kelas": kelas,
+
+                    "Hari": hari,
+
+                    "Jam": jam,
+
+                    "Guru": guru,
+
+                    "Mapel": mapel
+
+                })
+
+    return pd.DataFrame(rows)
+
+
+# =====================================
+# RINGKASAN
+# =====================================
+
+def ringkasan(gagal, berhasil):
+
+    print("=" * 60)
+
+    print("HASIL GENERATE")
+
+    print("=" * 60)
+
+    print()
+
+    print("Berhasil :", berhasil)
+
+    print("Gagal :", len(gagal))
+
+    print()
+
+    if len(gagal):
+
+        print("DATA YANG BELUM TERJADWAL")
+
+        print()
+
+        for g in gagal:
+
+            print(
+
+                g["Guru"],
+
+                "-",
+
+                g["Mapel"],
+
+                "-",
+
+                g["Kelas"]
+
+            )
+
+
+# =====================================
+# MAIN
+# =====================================
+
+if __name__ == "__main__":
+
+    jadwal, gagal, berhasil = generate_jadwal()
+
+    df = jadwal_dataframe(jadwal)
+
+    print(df.head())
+
+    print()
+
+    ringkasan(gagal, berhasil)
