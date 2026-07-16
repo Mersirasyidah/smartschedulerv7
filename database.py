@@ -1,8 +1,9 @@
+# database.py
 import os
 import pandas as pd
 import streamlit as st
 
-# Lokasi file database Excel
+# Lokasi file database Excel di dalam folder data
 DATABASE = "data/database_scheduler.xlsx"
 
 
@@ -44,7 +45,7 @@ def load_database():
 
 
 # ==========================
-# Fungsi-fungsi pembantu
+# Fungsi-fungsi pembantu (Disinkronkan dengan Nama Sheet Excel Anda)
 # ==========================
 
 def get_guru():
@@ -60,15 +61,13 @@ def get_rombel():
 
 
 def get_mengajar():
-    return load_database().get("Mengajar", pd.DataFrame())
+    # Menggunakan "Guru_Mengajar" sesuai nama sheet asli di Excel Anda
+    return load_database().get("Guru_Mengajar", pd.DataFrame())
 
 
-def get_setting():
-    return load_database().get("Setting", pd.DataFrame())
-
-
-def get_jadwal():
-    return load_database().get("Jadwal", pd.DataFrame())
+def get_hari_jam():
+    # Menggunakan "Hari_Jam" sesuai nama sheet asli di Excel Anda
+    return load_database().get("Hari_Jam", pd.DataFrame())
 
 
 # ==========================
@@ -78,22 +77,22 @@ def get_jadwal():
 if __name__ == "__main__":
 
     print("=" * 50)
-    print("SMART SCHEDULER V7")
+    print("SMART SCHEDULER V2 - DATABASE CHECK")
     print("=" * 50)
 
-    print("Folder kerja :", os.getcwd())
+    print("Folder kerja    :", os.getcwd())
     print("Lokasi database :", DATABASE)
-    print("File ditemukan :", os.path.exists(DATABASE))
+    print("File ditemukan  :", os.path.exists(DATABASE))
 
     if os.path.exists(DATABASE):
 
         excel = pd.ExcelFile(DATABASE, engine="openpyxl")
 
-        print("\nDaftar Sheet :")
+        print("\nDaftar Sheet Riil di Excel:")
 
         for sheet in excel.sheet_names:
             print("-", sheet)
 
     else:
 
-        print("Database tidak ditemukan.")
+        print("Database tidak ditemukan di folder data/.")
