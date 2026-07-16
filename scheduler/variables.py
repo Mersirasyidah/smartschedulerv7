@@ -1,37 +1,16 @@
+"""
+====================================================
+SMART SCHEDULER V2
+VARIABLE BUILDER
+====================================================
+"""
+
 from ortools.sat.python import cp_model
 
 
 class VariableBuilder:
 
-    """
-    Membangun seluruh variabel OR-Tools
-
-    1 variabel =
-
-    Guru
-    +
-    Kelas
-    +
-    Mapel
-    +
-    Slot HariJam
-
-    Nilai:
-
-    1 = mengajar
-
-    0 = tidak mengajar
-    """
-
-    def __init__(
-
-        self,
-
-        loader,
-
-        calendar
-
-    ):
+    def __init__(self, loader, calendar):
 
         self.loader = loader
 
@@ -39,39 +18,29 @@ class VariableBuilder:
 
         self.model = cp_model.CpModel()
 
-        self.variables = {}
+        self.x = {}
 
-        self.index = []
-
-
-
-    # =====================================================
-    # MEMBANGUN VARIABEL
-    # =====================================================
+    # ==================================================
+    # MEMBUAT VARIABLE
+    # ==================================================
 
     def build(self):
 
-        nomor = 0
+        print("=" * 60)
+        print("MEMBUAT VARIABLE AI")
+        print("=" * 60)
 
-        mengajar = self.loader.mengajar
+        jumlah = 0
 
-        slot = self.calendar.slot
+        for _, row in self.loader.mengajar.iterrows():
 
-        for _, row in mengajar.iterrows():
+            guru = row[self.loader.col_guru]
 
-            guru = row["Nama Guru"]
+            kelas = row[self.loader.col_kelas]
 
-            mapel = row["Mapel"]
+            mapel = row[self.loader.col_mapel]
 
-            kelas = row["Kelas"]
-
-            jp = int(row["JP"])
-
-            pembagian = row["Pembagian"]
-
-            guru_id = row["ID Guru"]
-
-            for s in slot:
+            for slot in self.calendar.slot:
 
                 key = (
 
@@ -81,276 +50,104 @@ class VariableBuilder:
 
                     mapel,
 
-                    s["hari"],
+                    slot["hari"],
 
-                    s["jam"]
-
-                )
-
-                var = self.model.NewBoolVar(
-
-                    f"J_{nomor}"
+                    slot["jam"]
 
                 )
 
-                self.variables[key] = var
+                self.x[key] = self.model.NewBoolVar(
 
-                self.index.append({
+                    f"x_{jumlah}"
 
-                    "id": nomor,
+                )
 
-                    "guru": guru,
+                jumlah += 1
 
-                    "guru_id": guru_id,
-
-                    "kelas": kelas,
-
-                    "mapel": mapel,
-
-                    "jp": jp,
-
-                    "pembagian": pembagian,
-
-                    "hari": s["hari"],
-
-                    "jam": s["jam"],
-
-                    "variable": var
-
-                })
-
-                nomor += 1
+        print("Jumlah Variable :", jumlah)
 
         print("=" * 60)
-        print("VARIABLE BUILDER")
-        print("=" * 60)
-        print("Jumlah Variabel :", len(self.index))
-        print("=" * 60)
 
+    # ==================================================
+    # AMBIL VARIABLE
+    # ==================================================
 
+    def get(
 
-    # =====================================================
-    # MENGAMBIL SEMUA VARIABEL
-    # =====================================================
+        self,
+
+        guru,
+
+        kelas,
+
+        mapel,
+
+        hari,
+
+        jam
+
+    ):
+
+        return self.x.get(
+
+            (
+
+                guru,
+
+                kelas,
+
+                mapel,
+
+                hari,
+
+                jam
+
+            )
+
+        )
+
+    # ==================================================
+    # SEMUA VARIABLE
+    # ==================================================
 
     def all(self):
 
-        return self.index
+        return self.x
 
+    # ==================================================
+    # PREVIEW
+    # ==================================================
 
+    def preview(self, jumlah=20):
 
-    # =====================================================
-    # FILTER GURU
-    # =====================================================
+        print("=" * 60)
+        print("PREVIEW VARIABLE")
+        print("=" * 60)
 
-    def by_guru(
+        i = 0
 
-        self,
+        for k in self.x:
 
-        guru
+            print(k)
 
-    ):
+            i += 1
 
-        return [
+            if i >= jumlah:
 
-            x
+                break
 
-            for x in self.index
+        print("=" * 60)
 
-            if x["guru"] == guru
+    # ==================================================
+    # STATISTIK
+    # ==================================================
 
-        ]
+    def statistics(self):
 
+        print("=" * 60)
+        print("STATISTIK VARIABLE")
+        print("=" * 60)
 
+        print("Total Variable :", len(self.x))
 
-    # =====================================================
-    # FILTER KELAS
-    # =====================================================
-
-    def by_kelas(
-
-        self,
-
-        kelas
-
-    ):
-
-        return [
-
-            x
-
-            for x in self.index
-
-            if x["kelas"] == kelas
-
-        ]
-
-
-
-    # =====================================================
-    # FILTER MAPEL
-    # =====================================================
-
-    def by_mapel(
-
-        self,
-
-        mapel
-
-    ):
-
-        return [
-
-            x
-
-            for x in self.index
-
-            if x["mapel"] == mapel
-
-        ]
-
-
-
-    # =====================================================
-    # FILTER SLOT
-    # =====================================================
-
-    def by_slot(
-
-        self,
-
-        hari,
-
-        jam
-
-    ):
-
-        return [
-
-            x
-
-            for x in self.index
-
-            if
-
-            x["hari"] == hari
-
-            and
-
-            x["jam"] == jam
-
-        ]
-
-
-
-    # =====================================================
-    # FILTER GURU + SLOT
-    # =====================================================
-
-    def guru_slot(
-
-        self,
-
-        guru,
-
-        hari,
-
-        jam
-
-    ):
-
-        return [
-
-            x
-
-            for x in self.index
-
-            if
-
-            x["guru"] == guru
-
-            and
-
-            x["hari"] == hari
-
-            and
-
-            x["jam"] == jam
-
-        ]
-
-
-
-    # =====================================================
-    # FILTER KELAS + SLOT
-    # =====================================================
-
-    def kelas_slot(
-
-        self,
-
-        kelas,
-
-        hari,
-
-        jam
-
-    ):
-
-        return [
-
-            x
-
-            for x in self.index
-
-            if
-
-            x["kelas"] == kelas
-
-            and
-
-            x["hari"] == hari
-
-            and
-
-            x["jam"] == jam
-
-        ]
-
-
-
-    # =====================================================
-    # FILTER MAPEL
-    # =====================================================
-
-    def guru_mapel(
-
-        self,
-
-        guru,
-
-        kelas,
-
-        mapel
-
-    ):
-
-        return [
-
-            x
-
-            for x in self.index
-
-            if
-
-            x["guru"] == guru
-
-            and
-
-            x["kelas"] == kelas
-
-            and
-
-            x["mapel"] == mapel
-
-        ]
+        print("=" * 60)
