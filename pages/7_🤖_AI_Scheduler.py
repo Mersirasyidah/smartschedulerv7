@@ -221,29 +221,39 @@ if __name__=="__main__":
 
     print(jadwal.keys())
 
-# =====================================
-# MENGUBAH PEMBAGIAN JP
-# =====================================
-
-def pembagian_jp(teks):
-
+def pembagian_jp(nilai):
     """
     Mengubah:
-    2,2,1  -> [2,2,1]
-    3      -> [3]
-    2,2    -> [2,2]
+    2,2,1
+    2,2
+    3
+    3.0
+    menjadi list integer
     """
 
-    if pd.isna(teks):
+    import pandas as pd
+
+    if pd.isna(nilai):
         return []
 
-    teks = str(teks)
+    teks = str(nilai).strip()
+
+    if teks == "":
+        return []
 
     hasil = []
 
     for x in teks.split(","):
 
-        hasil.append(int(x.strip()))
+        x = x.strip()
+
+        if x == "":
+            continue
+
+        try:
+            hasil.append(int(float(x)))
+        except Exception:
+            print("Pembagian tidak valid :", nilai)
 
     return hasil
 
@@ -458,7 +468,14 @@ def generate_jadwal():
 
         jp = int(row["JP"])
 
-        pembagian = pembagian_jp(row["Pembagian"])
+        print(
+    row["Nama Guru"],
+    row["Mapel"],
+    row["Kelas"],
+    row["Pembagian"]
+)
+
+pembagian = pembagian_jp(row["Pembagian"])
 
         sukses = True
 
