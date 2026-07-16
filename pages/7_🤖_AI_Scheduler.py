@@ -461,51 +461,85 @@ if st.button(
     st.divider()
 
 
-# =================================
-# JALANKAN AI SOLVER
-# =================================
+    # =================================
+    # JALANKAN AI SOLVER
+    # =================================
 
 
-with st.spinner(
-    "🤖 AI sedang mencari jadwal terbaik..."
-):
+    try:
 
 
-    solusi = scheduler.solve()
+        with st.spinner(
+            "🤖 AI sedang mencari jadwal terbaik..."
+        ):
+
+
+            solusi = scheduler.solve()
 
 
 
-if solusi:
+        if solusi:
 
 
-    st.success(
-        "🎉 Jadwal berhasil dibuat"
-    )
+            st.success(
+                "🎉 Jadwal berhasil dibuat"
+            )
 
 
-    hasil = scheduler.to_dataframe()
+            hasil = scheduler.to_dataframe()
 
 
-    st.subheader(
-        "📅 Hasil Jadwal"
-    )
+
+            st.subheader(
+                "📅 Hasil Jadwal"
+            )
 
 
-    st.dataframe(
 
-        hasil,
-
-        use_container_width=True
-
-    )
+            if not hasil.empty:
 
 
-else:
+                st.dataframe(
+
+                    hasil,
+
+                    use_container_width=True
+
+                )
 
 
-    st.error(
-        """
-        AI tidak menemukan jadwal.
-        Kemungkinan ada aturan yang bertentangan.
-        """
-    )
+            else:
+
+
+                st.warning(
+                    "Solver berhasil tetapi data jadwal kosong"
+                )
+
+
+
+        else:
+
+
+            st.error(
+                """
+                AI tidak menemukan jadwal.
+
+                Kemungkinan:
+                - Beban jam terlalu banyak
+                - Guru bentrok
+                - Kelas tidak cukup
+                - Constraint terlalu ketat
+                """
+            )
+
+
+
+    except Exception as e:
+
+
+        st.error(
+            "Terjadi error saat menjalankan AI Solver"
+        )
+
+
+        st.exception(e)
