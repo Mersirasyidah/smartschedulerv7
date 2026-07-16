@@ -57,42 +57,107 @@ col3.metric(
 
 st.divider()
 
-# =====================================
-# Tombol Generate
-# =====================================
+from scheduler import Scheduler
+import pandas as pd
+
 
 if st.button("🚀 Generate Jadwal"):
 
-    progress = st.progress(0)
-
-    for i in range(100):
-
-        progress.progress(i + 1)
-
-    st.success("Engine Scheduler belum dibuat.")
 
     st.info(
-        "Tahap berikutnya kita akan menghubungkan scheduler.py."
+        "Menyiapkan AI Scheduler..."
     )
 
-st.divider()
 
-# =====================================
-# Preview Data Mengajar
-# =====================================
+    # ==========================
+    # DATA SEMENTARA
+    # nanti diganti database
+    # ==========================
 
-st.subheader("Preview Data Guru Mengajar")
 
-st.dataframe(
-    mengajar,
-    use_container_width=True
-)
+    data_guru = [
+        "Budi",
+        "Siti",
+        "Andi"
+    ]
 
-st.divider()
 
-st.subheader("Preview Guru")
+    data_kelas = [
+        "7A",
+        "7B",
+        "8A"
+    ]
 
-st.dataframe(
-    guru,
-    use_container_width=True
-)
+
+    data_mapel = [
+        "Matematika",
+        "Informatika",
+        "IPA"
+    ]
+
+
+
+    data_jadwal = pd.DataFrame({
+
+        "guru":[
+            "Budi",
+            "Siti",
+            "Andi"
+        ],
+
+        "kelas":[
+            "7A",
+            "7B",
+            "8A"
+        ],
+
+        "mapel":[
+            "Matematika",
+            "Informatika",
+            "IPA"
+        ],
+
+        "jam":[
+            5,
+            3,
+            4
+        ]
+
+    })
+
+
+
+    # Membuat engine
+
+    scheduler = Scheduler(
+
+        data_guru,
+        data_kelas,
+        data_mapel,
+        data_jadwal
+
+    )
+
+
+
+    # membuat kemungkinan jadwal
+
+    scheduler.create_index()
+
+
+
+    # membuat variabel AI
+
+    scheduler.create_variables()
+
+
+
+    # pasang aturan
+
+    scheduler.build_constraints()
+
+
+
+    st.success(
+        "Engine Scheduler berhasil dibuat"
+    )
