@@ -1,153 +1,56 @@
-"""
-====================================================
-SMART SCHEDULER V2
-VARIABLE BUILDER
-====================================================
-"""
-
-from ortools.sat.python import cp_model
-
-
-class VariableBuilder:
-
-    def __init__(self, loader, calendar):
-
-        self.loader = loader
-
-        self.calendar = calendar
-
-        self.model = cp_model.CpModel()
-
-        self.x = {}
-
-    # ==================================================
-    # MEMBUAT VARIABLE
-    # ==================================================
-
-    def build(self):
-
-        print("=" * 60)
-        print("MEMBUAT VARIABLE AI")
-        print("=" * 60)
-
-        jumlah = 0
-
-        for _, row in self.loader.mengajar.iterrows():
-
-            guru = row[self.loader.col_guru]
-
-            kelas = row[self.loader.col_kelas]
-
-            mapel = row[self.loader.col_mapel]
-
-            for slot in self.calendar.slot:
-
-                key = (
-
-                    guru,
-
-                    kelas,
-
-                    mapel,
-
-                    slot["hari"],
-
-                    slot["jam"]
-
-                )
-
-                self.x[key] = self.model.NewBoolVar(
-
-                    f"x_{jumlah}"
-
-                )
-
-                jumlah += 1
-
-        print("Jumlah Variable :", jumlah)
-
-        print("=" * 60)
-
-    # ==================================================
-    # AMBIL VARIABLE
-    # ==================================================
-
-    def get(
-
-        self,
-
-        guru,
-
-        kelas,
-
-        mapel,
-
-        hari,
-
-        jam
-
-    ):
-
-        return self.x.get(
-
-            (
-
-                guru,
-
-                kelas,
-
-                mapel,
-
-                hari,
-
-                jam
-
-            )
-
-        )
-
-    # ==================================================
-    # SEMUA VARIABLE
-    # ==================================================
-
-    def all(self):
-
-        return self.x
-
-    # ==================================================
-    # PREVIEW
-    # ==================================================
-
-    def preview(self, jumlah=20):
-
-        print("=" * 60)
-        print("PREVIEW VARIABLE")
-        print("=" * 60)
-
-        i = 0
-
-        for k in self.x:
-
-            print(k)
-
-            i += 1
-
-            if i >= jumlah:
-
-                break
-
-        print("=" * 60)
-
-    # ==================================================
-    # STATISTIK
-    # ==================================================
-
-    def statistics(self):
-
-        print("=" * 60)
-        print("STATISTIK VARIABLE")
-        print("=" * 60)
-
-        print("Total Variable :", len(self.x))
-
-        print("=" * 60)
+# variables.py
+from dataclasses import dataclass, field
+from typing import List, Dict, Tuple, Optional
+
+@dataclass
+class Guru:
+    id: str
+    name: str
+    max_hours_per_day: int = 6
+    unavailability: List[Tuple[str, int]] = field(default_factory=list)  # [(hari, jam), ...]
+    preferences: List[Tuple[str, int]] = field(default_factory=list)     # [(hari, jam), ...]
+
+@dataclass
+class Rombel:
+    id: str
+    name: str
+    unavailability: List[Tuple[str, int]] = field(default_factory=list)  # [(hari, jam), ...]
+
+@dataclass
+class Mapel:
+    id: str
+    name: str
+    duration: int = 2  # Durasi JP (Jam Pelajaran) sekaligus
+
+@dataclass
+class KelasAktif:
+    """Representasi satu entitas kegiatan belajar mengajar yang harus dijadwalkan."""
+    id: str
+    rombel_id: str
+    guru_id: str
+    mapel_id: str
+    room_requirements: List[str] = field(default_factory=list)
+
+@dataclass
+class Ruangan:
+    id: str
+    name: str
+    is_lab: bool = False
+
+@dataclass
+class ScheduleAssignment:
+    kelas_id: str
+    rombel_id: str
+    guru_id: str
+    mapel_id: str
+    hari: str
+    jam_mulai: int
+    durasi: int
+    ruangan_id: str
+
+@dataclass
+class ScheduleResult:
+    is_feasible: bool
+    assignments: List[ScheduleAssignment] = field(default_factory=list)
+    computation_time: float = 0.0
+    unmapped_classes: List[str] = field(default_factory=list)
