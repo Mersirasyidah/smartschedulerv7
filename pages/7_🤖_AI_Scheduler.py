@@ -1,9 +1,10 @@
 import pandas as pd
+import random
 from database import load_database
 
-# =====================================
+# =====================================================
 # LOAD DATABASE
-# =====================================
+# =====================================================
 
 db = load_database()
 
@@ -12,9 +13,9 @@ mengajar = db["Guru_Mengajar"]
 rombel = db["Rombel"]
 hari_jam = db["Hari_Jam"]
 
-# =====================================
+# =====================================================
 # HARI BELAJAR
-# =====================================
+# =====================================================
 
 HARI = [
     "Senin",
@@ -24,37 +25,29 @@ HARI = [
     "Jumat"
 ]
 
-# =====================================
-# SLOT JAM
-# =====================================
+# =====================================================
+# SLOT JP
+# =====================================================
 
 JAM = {
-
-    "Senin":[1,2,3,4,5,6,7,8,9],
-
-    "Selasa":[1,2,3,4,5,6,7,8,9],
-
-    "Rabu":[1,2,3,4,5,6,7,8,9],
-
-    "Kamis":[1,2,3,4,5,6,7,8,9],
-
-    "Jumat":[1,2,3,4,5,6]
-
+    "Senin":  [1,2,3,4,5,6,7,8,9],
+    "Selasa": [1,2,3,4,5,6,7,8,9],
+    "Rabu":   [1,2,3,4,5,6,7,8,9],
+    "Kamis":  [1,2,3,4,5,6,7,8,9],
+    "Jumat":  [1,2,3,4,5,6]
 }
 
-# =====================================
+# =====================================================
 # MEMBUAT SLOT JADWAL
-# =====================================
+# =====================================================
 
 def buat_slot_jadwal():
 
     jadwal = {}
 
-    daftar_kelas = sorted(
-        rombel["Kelas"].unique()
-    )
+    daftar = sorted(rombel["Kelas"].unique())
 
-    for kelas in daftar_kelas:
+    for kelas in daftar:
 
         jadwal[kelas] = {}
 
@@ -68,177 +61,31 @@ def buat_slot_jadwal():
 
     return jadwal
 
-# =====================================
-# DAFTAR GURU
-# =====================================
 
-def daftar_guru():
-
-    return guru["Nama Guru"].tolist()
-
-# =====================================
-# DAFTAR KELAS
-# =====================================
-
-def daftar_kelas():
-
-    return sorted(
-        rombel["Kelas"].tolist()
-    )
-
-# =====================================
-# DATA MENGAJAR GURU
-# =====================================
-
-def guru_mengajar(id_guru):
-
-    return mengajar[
-        mengajar["ID Guru"] == id_guru
-    ]
-
-# =====================================
-# CEK HARI MGMP
-# =====================================
-
-def hari_mgmp(id_guru):
-
-    data = guru[
-        guru["ID Guru"] == id_guru
-    ]
-
-    if len(data)==0:
-
-        return None
-
-    return data.iloc[0]["Hari MGMP"]
-
-# =====================================
-# CEK PRIORITAS
-# =====================================
-
-def prioritas(id_guru):
-
-    data = guru[
-        guru["ID Guru"] == id_guru
-    ]
-
-    if len(data)==0:
-
-        return 3
-
-    return data.iloc[0]["Prioritas"]
-
-# =====================================
-# CEK BOLEH MENGAJAR
-# =====================================
-
-def boleh_mengajar(id_guru,hari,jam):
-
-    mgmp = hari_mgmp(id_guru)
-
-    if hari == mgmp:
-
-        if jam >=5:
-
-            return False
-
-    return True
-
-# =====================================
-# MENAMPILKAN SLOT
-# =====================================
-
-def tampilkan_slot(jadwal):
-
-    for kelas in jadwal:
-
-        print("="*60)
-
-        print(kelas)
-
-        print("="*60)
-
-        for hari in jadwal[kelas]:
-
-            print(hari)
-
-            for jam in jadwal[kelas][hari]:
-
-                print(
-                    jam,
-                    jadwal[kelas][hari][jam]
-                )
-
-# =====================================
-# MEMBUAT JADWAL KOSONG
-# =====================================
-
-jadwal = buat_slot_jadwal()
-
-# =====================================
-# MAIN
-# =====================================
-
-if __name__=="__main__":
-
-    print("="*60)
-    print("SMART SCHEDULER V7")
-    print("="*60)
-
-    print()
-
-    print("Jumlah Guru :",len(guru))
-
-    print("Jumlah Kelas :",len(rombel))
-
-    print("Jumlah Data Mengajar :",len(mengajar))
-
-    print()
-
-    print("Daftar Guru")
-
-    print("----------------")
-
-    for g in daftar_guru():
-
-        print(g)
-
-    print()
-
-    print("Daftar Kelas")
-
-    print("----------------")
-
-    for k in daftar_kelas():
-
-        print(k)
-
-    print()
-
-    print("Slot Jadwal berhasil dibuat.")
-
-    print()
-
-    print(jadwal.keys())
+# =====================================================
+# PEMBAGIAN JP
+# =====================================================
 
 def pembagian_jp(nilai):
-    """
-    Mengubah:
-    2,2,1
-    2,2
-    3
-    3.0
-    menjadi list integer
-    """
 
-    import pandas as pd
+    """
+    Contoh:
+
+    2,2,1
+
+    menjadi
+
+    [2,2,1]
+    """
 
     if pd.isna(nilai):
+
         return []
 
     teks = str(nilai).strip()
 
     if teks == "":
+
         return []
 
     hasil = []
@@ -248,23 +95,81 @@ def pembagian_jp(nilai):
         x = x.strip()
 
         if x == "":
+
             continue
 
         try:
+
             hasil.append(int(float(x)))
+
         except Exception:
-            print("Pembagian tidak valid :", nilai)
+
+            print("Pembagian salah :", nilai)
+
+            return []
 
     return hasil
 
 
-# =====================================
-# DATA MENGAJAR BERDASARKAN PRIORITAS
-# =====================================
+# =====================================================
+# HARI MGMP
+# =====================================================
+
+def hari_mgmp(id_guru):
+
+    data = guru[
+        guru["ID Guru"] == id_guru
+    ]
+
+    if len(data) == 0:
+
+        return None
+
+    return data.iloc[0]["Hari MGMP"]
+
+
+# =====================================================
+# PRIORITAS
+# =====================================================
+
+def prioritas(id_guru):
+
+    data = guru[
+        guru["ID Guru"] == id_guru
+    ]
+
+    if len(data) == 0:
+
+        return 3
+
+    return int(data.iloc[0]["Prioritas"])
+
+
+# =====================================================
+# BOLEH MENGAJAR
+# =====================================================
+
+def boleh_mengajar(id_guru, hari, jam):
+
+    mgmp = hari_mgmp(id_guru)
+
+    if mgmp == hari:
+
+        if jam >= 5:
+
+            return False
+
+    return True
+
+
+# =====================================================
+# DATA PRIORITAS
+# =====================================================
 
 def data_prioritas():
 
     data = mengajar.merge(
+
         guru[
             [
                 "ID Guru",
@@ -272,179 +177,123 @@ def data_prioritas():
                 "Prioritas"
             ]
         ],
+
         on="ID Guru"
+
     )
 
     data = data.sort_values(
-        by="Prioritas"
+
+        by=[
+            "Prioritas",
+            "Nama Guru",
+            "Kelas"
+        ]
+
     )
 
     return data.reset_index(drop=True)
 
 
-# =====================================
+# =====================================================
+# MENAMPILKAN DATABASE
+# =====================================================
+
+def info_database():
+
+    print("=" * 60)
+
+    print("SMART SCHEDULER V7")
+
+    print("=" * 60)
+
+    print()
+
+    print("Jumlah Guru :", len(guru))
+
+    print("Jumlah Mengajar :", len(mengajar))
+
+    print("Jumlah Kelas :", len(rombel))
+
+    print()
+
+    print("Hari Belajar")
+
+    print(HARI)
+
+    print()
+
+    print("Total Slot")
+
+    total = 0
+
+    for h in HARI:
+
+        total += len(JAM[h])
+
+    print(total)
+
+    print()
+
+
+# =====================================================
+# MAIN
+# =====================================================
+
+if __name__ == "__main__":
+
+    info_database()
+
+    jadwal = buat_slot_jadwal()
+
+    print("Slot berhasil dibuat")
+
+    print()
+
+    print(jadwal.keys())
+
+# =====================================================
 # CEK SLOT KOSONG
-# =====================================
+# =====================================================
 
 def slot_kosong(jadwal, kelas, hari, jam):
-
     return jadwal[kelas][hari][jam] is None
 
 
-# =====================================
-# CEK GURU SUDAH MENGAJAR
-# =====================================
+# =====================================================
+# CEK GURU BENTROK
+# =====================================================
 
-def guru_bentrok(jadwal, nama_guru, hari, jam):
+def guru_bentrok(jadwal, guru_nama, hari, jam):
 
-    for kelas in jadwal:
+    for kls in jadwal.keys():
 
-        isi = jadwal[kelas][hari][jam]
+        data = jadwal[kls][hari][jam]
 
-        if isi is None:
+        if data is None:
             continue
 
-        if isi["Guru"] == nama_guru:
+        if data["Guru"] == guru_nama:
             return True
 
     return False
 
 
-# =====================================
-# MENEMPATKAN SATU JP
-# =====================================
+# =====================================================
+# CEK KELAS BENTROK
+# =====================================================
 
-def isi_slot(
-    jadwal,
-    kelas,
-    hari,
-    jam,
-    guru_nama,
-    mapel,
-):
+def kelas_bentrok(jadwal, kelas, hari, jam):
 
-    jadwal[kelas][hari][jam] = {
-
-        "Guru": guru_nama,
-
-        "Mapel": mapel
-
-    }
+    return jadwal[kelas][hari][jam] is not None
 
 
-# =====================================
-# MENCARI SLOT BERURUT
-# =====================================
+# =====================================================
+# HIT
 
-def cari_slot(
-    jadwal,
-    kelas,
-    nama_guru,
-    hari,
-    panjang
-):
-
-    daftar = JAM[hari]
-
-    for awal in daftar:
-
-        akhir = awal + panjang - 1
-
-        if akhir not in daftar:
-            continue
-
-        boleh = True
-
-        for j in range(awal, akhir + 1):
-
-            if not slot_kosong(
-                jadwal,
-                kelas,
-                hari,
-                j
-            ):
-
-                boleh = False
-
-                break
-
-            if guru_bentrok(
-                jadwal,
-                nama_guru,
-                hari,
-                j
-            ):
-
-                boleh = False
-
-                break
-
-        if boleh:
-
-            return awal
-
-    return None
-
-
-# =====================================
-# MENEMPATKAN SATU BLOK JP
-# =====================================
-
-def tempatkan_blok(
-    jadwal,
-    kelas,
-    guru_id,
-    guru_nama,
-    mapel,
-    panjang
-):
-
-    for hari in HARI:
-
-        if hari == "Jumat" and panjang > 2:
-            continue
-
-        for jam in JAM[hari]:
-
-            if not boleh_mengajar(
-                guru_id,
-                hari,
-                jam
-            ):
-                continue
-
-        awal = cari_slot(
-            jadwal,
-            kelas,
-            guru_nama,
-            hari,
-            panjang
-        )
-
-        if awal is None:
-            continue
-
-        for j in range(
-            awal,
-            awal + panjang
-        ):
-
-            isi_slot(
-                jadwal,
-                kelas,
-                hari,
-                j,
-                guru_nama,
-                mapel
-            )
-
-        return True
-
-    return False
-
-# =====================================
+# =====================================================
 # GENERATE JADWAL
-# =====================================
+# =====================================================
 
 def generate_jadwal():
 
@@ -452,52 +301,46 @@ def generate_jadwal():
 
     data = data_prioritas()
 
+    berhasil = []
     gagal = []
 
-    berhasil = 0
+    print("=" * 60)
+    print("GENERATE JADWAL")
+    print("=" * 60)
 
     for _, row in data.iterrows():
 
         guru_id = row["ID Guru"]
-
         guru_nama = row["Nama Guru"]
-
         mapel = row["Mapel"]
-
         kelas = row["Kelas"]
 
         jp = int(row["JP"])
 
-        print(
-    row["Nama Guru"],
-    row["Mapel"],
-    row["Kelas"],
-    row["Pembagian"]
-)
+        blok_jp = pembagian_jp(row["Pembagian"])
 
-pembagian = pembagian_jp(row["Pembagian"])
+        if len(blok_jp) == 0:
+
+            gagal.append({
+                "Guru": guru_nama,
+                "Mapel": mapel,
+                "Kelas": kelas,
+                "Alasan": "Pembagian JP tidak valid"
+            })
+
+            continue
 
         sukses = True
 
-        # contoh :
-        # 5 JP -> [2,2,1]
-
-        for blok in pembagian:
+        for blok in blok_jp:
 
             hasil = tempatkan_blok(
-
                 jadwal,
-
                 kelas,
-
                 guru_id,
-
                 guru_nama,
-
                 mapel,
-
                 blok
-
             )
 
             if not hasil:
@@ -508,34 +351,33 @@ pembagian = pembagian_jp(row["Pembagian"])
 
         if sukses:
 
-            berhasil += 1
+            berhasil.append({
+                "Guru": guru_nama,
+                "Mapel": mapel,
+                "Kelas": kelas
+            })
 
         else:
 
             gagal.append({
-
                 "Guru": guru_nama,
-
                 "Mapel": mapel,
-
                 "Kelas": kelas,
-
-                "JP": jp
-
+                "Alasan": "Tidak menemukan slot"
             })
 
-    return jadwal, gagal, berhasil
+    return jadwal, berhasil, gagal
 
 
-# =====================================
-# UBAH JADWAL MENJADI DATAFRAME
-# =====================================
+# =====================================================
+# JADWAL → DATAFRAME
+# =====================================================
 
-def jadwal_dataframe(jadwal):
+def jadwal_to_dataframe(jadwal):
 
-    rows = []
+    hasil = []
 
-    for kelas in jadwal:
+    for kelas in jadwal.keys():
 
         for hari in HARI:
 
@@ -545,38 +387,56 @@ def jadwal_dataframe(jadwal):
 
                 if isi is None:
 
-                    guru = ""
-
-                    mapel = ""
+                    hasil.append({
+                        "Kelas": kelas,
+                        "Hari": hari,
+                        "Jam": jam,
+                        "Guru": "",
+                        "Mapel": ""
+                    })
 
                 else:
 
-                    guru = isi["Guru"]
+                    hasil.append({
+                        "Kelas": kelas,
+                        "Hari": hari,
+                        "Jam": jam,
+                        "Guru": isi["Guru"],
+                        "Mapel": isi["Mapel"]
+                    })
 
-                    mapel = isi["Mapel"]
-
-                rows.append({
-
-                    "Kelas": kelas,
-
-                    "Hari": hari,
-
-                    "Jam": jam,
-
-                    "Guru": guru,
-
-                    "Mapel": mapel
-
-                })
-
-    return pd.DataFrame(rows)
+    return pd.DataFrame(hasil)
 
 
-# =====================================
+# =====================================================
+# SIMPAN KE EXCEL
+# =====================================================
+
+def simpan_excel(df):
+
+    file = "hasil_jadwal.xlsx"
+
+    with pd.ExcelWriter(
+        file,
+        engine="openpyxl"
+    ) as writer:
+
+        df.to_excel(
+            writer,
+            sheet_name="Jadwal",
+            index=False
+        )
+
+    return file
+
+
+# =====================================================
 # RINGKASAN
-# =====================================
+# =====================================================
 
-def ringkasan(gagal, berhasil):
+def ringkasan(berhasil, gagal):
+
+    print()
 
     print("=" * 60)
 
@@ -586,47 +446,47 @@ def ringkasan(gagal, berhasil):
 
     print()
 
-    print("Berhasil :", berhasil)
+    print("Berhasil :", len(berhasil))
 
     print("Gagal :", len(gagal))
 
-    print()
-
     if len(gagal):
 
-        print("DATA YANG BELUM TERJADWAL")
-
         print()
+
+        print("Belum Terjadwal")
 
         for g in gagal:
 
             print(
-
                 g["Guru"],
-
                 "-",
-
                 g["Mapel"],
-
                 "-",
-
-                g["Kelas"]
-
+                g["Kelas"],
+                "-",
+                g["Alasan"]
             )
 
 
-# =====================================
+# =====================================================
 # MAIN
-# =====================================
+# =====================================================
 
 if __name__ == "__main__":
 
-    jadwal, gagal, berhasil = generate_jadwal()
+    info_database()
 
-    df = jadwal_dataframe(jadwal)
+    jadwal, berhasil, gagal = generate_jadwal()
+
+    df = jadwal_to_dataframe(jadwal)
 
     print(df.head())
 
+    ringkasan(berhasil, gagal)
+
+    simpan_excel(df)
+
     print()
 
-    ringkasan(gagal, berhasil)
+    print("File hasil_jadwal.xlsx berhasil dibuat.")
