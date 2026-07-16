@@ -4,124 +4,153 @@ from database import load_database
 
 st.set_page_config(
     page_title="Pemetaan Guru",
-    page_icon="👨‍🏫",
+    page_icon="📊",
     layout="wide"
 )
 
-db = load_database()
-
-# -----------------------------
-# Membaca sheet Guru
-# -----------------------------
-guru = db["Guru"]
-
 st.title("📊 PEMETAAN GURU")
 
-# =============================
-# PILIH GURU
-# =============================
+# ==========================
+# Load Database
+# ==========================
 
-daftar_guru = guru["Nama Guru"].sort_values().unique()
+db = load_database()
 
-pilih_guru = st.selectbox(
+guru = db["Guru"]
+mengajar = db["Guru_Mengajar"]
+
+# ==========================
+# Pilih Guru
+# ==========================
+
+nama_guru = sorted(guru["Nama Guru"].unique())
+
+pilih = st.selectbox(
     "Pilih Guru",
-    daftar_guru
+    nama_guru
 )
 
-# =============================
-# FILTER DATA
-# =============================
+# ==========================
+# Data Guru
+# ==========================
 
-data = guru[guru["Nama Guru"] == pilih_guru]
+data_guru = guru[guru["Nama Guru"] == pilih]
 
-# =============================
-# TAMPILKAN IDENTITAS
-# =============================
+if data_guru.empty:
+    st.warning("Guru tidak ditemukan.")
+    st.stop()
 
-st.subheader("Identitas Guru")
+info = data_guru.iloc[0]
 
-col1, col2 = st.columns(2)
+# ==========================
+# Data Mengajar
+# ==========================
 
-with col1:
+data_mengajar = mengajar[
+    mengajar["ID Guru"] == info["ID Guru"]
+]
 
-    st.write("**Nama Guru**")
-    st.success(data.iloc[0]["Nama Guru"])
+# ==========================
+# Identitas
+# ==========================
 
-    st.write("**ID Guru**")
-    st.info(data.iloc[0]["ID Guru"])
+st.subheader("👨‍🏫 Identitas Guru")
 
-    st.write("**Hari MGMP**")
-    st.warning(data.iloc[0]["Hari MGMP"])
+c1, c2 = st.columns(2)
 
+with c1:
 
-with col2:
+    st.info(f"**ID Guru :** {info['ID Guru']}")
+    st.info(f"**Nama Guru :** {info['Nama Guru']}")
+    st.info(f"**Status :** {info['Status']}")
 
-    st.write("**Prioritas**")
-    st.info(data.iloc[0]["PRIORITAS"])
+with c2:
 
-    st.write("**Jumlah JP / Kelas**")
-    st.success(data.iloc[0]["JP"])
-
+    st.info(f"**Hari MGMP :** {info['Hari MGMP']}")
+    st.info(f"**Prioritas :** {info['Prioritas']}")
 
 st.divider()
 
-# =============================
-# MATA PELAJARAN
-# =============================
+# ==========================
+# Mengajar
+# ==========================
 
-st.subheader("📖 Mata Pelajaran")
+st.subheader("📖 Mata Pelajaran yang Diampu")
 
-for m in data["Nama Mapel"]:
+if data_mengajar.empty:
 
-    st.write("✔", m)
+    st.warning("Belum ada data mengajar.")
 
-st.divider()
+else:
 
-# =============================
-# KELAS
-# =============================
-
-st.subheader("🏫 Mengajar di Kelas")
-
-kelas = []
-
-for item in data["Kelas"]:
-
-    kelas.extend(item.split(","))
-
-kelas = sorted(kelas)
-
-for k in kelas:
-
-    st.write("✔", k)
+    st.dataframe(
+        data_mengajar,
+        use_container_width=True,
+        hide_index=True
+    )
 
 st.divider()
 
-# =============================
-# RINGKASAN
-# =============================
+# ==========================
+# Ringkasan
+# ==========================
 
-jumlah_kelas = len(kelas)
+if not data_mengajar.empty:
 
-jp = int(data.iloc[0]["JP"])
+    jumlah_kelas = len(data_mengajar)
 
-total_jp = jumlah_kelas * jp
+    total_jp = data_mengajar["JP"].sum()
 
-st.subheader("📈 Ringkasan")
+    jumlah_mapel = data_mengajar["Mapel"].nunique()
 
-c1, c2, c3 = st.columns(3)
+    st.subheader("📈 Ringkasan Beban Mengajar")
 
-c1.metric(
-    "Jumlah Kelas",
-    jumlah_kelas
-)
+    a, b, c = st.columns(3)
 
-c2.metric(
-    "JP per Kelas",
-    jp
-)
+    a.metric(
+        "Jumlah Kelas",
+        jumlah_kelas
+    )
 
-c3.metric(
-    "Total Beban Mengajar",
-    total_jp
-)
+    b.metric(
+        "Jumlah Mapel",
+        jumlah_mapel
+    )
+
+    c.metric(
+        "Total JP",
+        total_jp
+    )
+
+st.divider()
+
+# ==========================
+# Daftar Kelas
+# ==========================
+
+if not data_mengajar.empty:
+
+    st.subheader("🏫 Daftar Kelas")
+
+    kelas = sorted(data_mengajar["Kelas"].tolist())
+
+    for k in kelas:
+        st.write("✅", k)
+
+st.divider()
+
+# ==========================
+# Grafik
+# ==========================
+
+if not data_mengajar.empty:
+
+    st.subheader("📊 Distribusi JP")
+
+    chart = (
+        data_mengajar
+        .groupby("Mapel")["JP"]
+        .sum()
+    )
+
+    st.bar_chart(chart)
