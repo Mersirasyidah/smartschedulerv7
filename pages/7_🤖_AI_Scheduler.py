@@ -5,10 +5,6 @@ from database import load_database
 from scheduler import Scheduler
 
 
-# =====================================
-# KONFIGURASI
-# =====================================
-
 st.set_page_config(
     page_title="AI Scheduler",
     page_icon="🤖",
@@ -21,9 +17,9 @@ st.caption("Smart Scheduler V7")
 
 
 
-# =====================================
+# ===============================
 # LOAD DATABASE
-# =====================================
+# ===============================
 
 try:
 
@@ -32,9 +28,7 @@ try:
 except Exception as e:
 
     st.error("Database gagal dibaca")
-
     st.exception(e)
-
     st.stop()
 
 
@@ -47,24 +41,21 @@ rombel = db["Rombel"]
 
 
 
-# =====================================
+# ===============================
 # STATISTIK
-# =====================================
+# ===============================
 
 c1,c2,c3 = st.columns(3)
-
 
 c1.metric(
     "Guru",
     len(guru)
 )
 
-
 c2.metric(
     "Mengajar",
     len(mengajar)
 )
-
 
 c3.metric(
     "Rombel",
@@ -76,9 +67,10 @@ st.divider()
 
 
 
-# =====================================
+# ===============================
 # GENERATE
-# =====================================
+# ===============================
+
 
 if st.button(
     "🚀 Generate Jadwal",
@@ -89,15 +81,9 @@ if st.button(
     try:
 
 
-        st.info(
-            "Membaca data sekolah..."
-        )
-
-
-
-        # =============================
-        # DATA GURU
-        # =============================
+        # ---------------------------
+        # Ambil Guru
+        # ---------------------------
 
         if "nama_guru" in guru.columns:
 
@@ -113,10 +99,9 @@ if st.button(
 
 
 
-        # =============================
-        # DATA KELAS
-        # =============================
-
+        # ---------------------------
+        # Ambil Kelas
+        # ---------------------------
 
         if "kelas" in rombel.columns:
 
@@ -132,10 +117,9 @@ if st.button(
 
 
 
-        # =============================
-        # DATA MAPEL
-        # =============================
-
+        # ---------------------------
+        # Ambil Mapel
+        # ---------------------------
 
         if "mapel" in mengajar.columns:
 
@@ -164,14 +148,14 @@ if st.button(
 
 
         st.success(
-            "Data berhasil dibaca"
+            "Database berhasil dibaca"
         )
 
 
 
-        # =============================
-        # BUAT ENGINE
-        # =============================
+        # ===========================
+        # ENGINE
+        # ===========================
 
 
         scheduler = Scheduler(
@@ -197,7 +181,7 @@ if st.button(
 
 
         st.success(
-            "Index jadwal dibuat"
+            "Index dibuat"
         )
 
 
@@ -215,51 +199,68 @@ if st.button(
 
 
         st.success(
-            "Constraint dipasang"
+            "Constraint dibuat"
         )
 
 
 
-        # =============================
+        # ===========================
         # SOLVER
-        # =============================
+        # ===========================
 
 
         with st.spinner(
-            "🤖 AI mencari jadwal..."
+            "AI mencari jadwal..."
         ):
 
 
-            solusi = scheduler.solve()
+            hasil_solver = scheduler.solve()
 
 
 
-        if solusi:
+        if hasil_solver:
+
+
+            st.success(
+                "Solver menemukan solusi"
+            )
+
 
 
             hasil = scheduler.to_dataframe()
 
 
 
-            if hasil.empty:
+            st.write(
+                "Jumlah Jadwal:",
+                len(hasil)
+            )
 
 
-                st.warning(
-                    "AI selesai tetapi jadwal kosong"
+
+            if len(hasil)>0:
+
+
+                # SIMPAN FILE
+
+                hasil.to_csv(
+
+                    "hasil_jadwal.csv",
+
+                    index=False
+
                 )
 
 
-            else:
 
-
-                # SIMPAN KE SESSION
+                # SIMPAN SESSION
 
                 st.session_state["jadwal"] = hasil
 
 
 
                 st.success(
-                    "🎉 Jadwal berhasil dibuat"
+                    "🎉 Jadwal berhasil dibuat dan disimpan"
                 )
 
 
@@ -267,7 +268,6 @@ if st.button(
                 st.subheader(
                     "📅 HASIL JADWAL"
                 )
-
 
 
                 st.dataframe(
@@ -282,11 +282,24 @@ if st.button(
 
 
 
+            else:
+
+
+                st.error(
+                    """
+                    Solver berhasil tetapi hasil jadwal kosong.
+
+                    Periksa scheduler.py
+                    """
+                )
+
+
+
         else:
 
 
             st.error(
-                "AI tidak menemukan solusi"
+                "AI tidak menemukan jadwal"
             )
 
 
@@ -295,7 +308,7 @@ if st.button(
 
 
         st.error(
-            "Terjadi kesalahan"
+            "Terjadi error"
         )
 
         st.exception(e)
