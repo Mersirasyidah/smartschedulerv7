@@ -1,8 +1,8 @@
-# ==========================================================
+# =====================================================
 # scheduler.py
-# SmartSchedulerV7
-# Engine Scheduler
-# ==========================================================
+# Smart Scheduler V7
+# AI Schedule Generator
+# =====================================================
 
 
 from ortools.sat.python import cp_model
@@ -10,42 +10,53 @@ import pandas as pd
 
 
 
-# ==========================================================
+# ==============================
 # KONFIGURASI
-# ==========================================================
-
+# ==============================
 
 HARI = [
+
     "Senin",
     "Selasa",
     "Rabu",
     "Kamis",
     "Jumat",
     "Sabtu"
+
 ]
 
 
 JAM = [
+
     1,2,3,4,5,6,7,8
+
 ]
 
 
 
-# ==========================================================
+# =====================================================
 # CLASS SCHEDULER
-# ==========================================================
+# =====================================================
 
 
 class Scheduler:
 
 
+
     def __init__(
+
         self,
+
         data_guru,
+
         data_kelas,
+
         data_mapel,
+
         data_jadwal=None
+
     ):
+
 
 
         self.data_guru = data_guru
@@ -70,12 +81,17 @@ class Scheduler:
 
 
 
-    # ======================================================
-    # MEMBUAT KOMBINASI JADWAL
-    # ======================================================
+
+
+    # =================================================
+    # MEMBUAT SEMUA KEMUNGKINAN JADWAL
+    # =================================================
 
 
     def create_index(self):
+
+
+        nomor = 0
 
 
         for guru in self.data_guru:
@@ -93,7 +109,11 @@ class Scheduler:
                         for jam in JAM:
 
 
+
                             self.index.append({
+
+
+                                "id": nomor,
 
                                 "guru": guru,
 
@@ -105,7 +125,11 @@ class Scheduler:
 
                                 "jam": jam
 
+
                             })
+
+
+                            nomor += 1
 
 
 
@@ -114,22 +138,28 @@ class Scheduler:
 
 
 
-    # ======================================================
-    # VARIABLE AI
-    # ======================================================
+
+    # =================================================
+    # MEMBUAT VARIABLE AI
+    # =================================================
 
 
     def create_variables(self):
 
 
-        for i,item in enumerate(self.index):
+        for item in self.index:
 
 
-            self.schedule_vars[i] = (
+
+            nomor = item["id"]
+
+
+
+            self.schedule_vars[nomor] = (
 
                 self.model.NewBoolVar(
 
-                    f"jadwal_{i}"
+                    f"jadwal_{nomor}"
 
                 )
 
@@ -138,9 +168,10 @@ class Scheduler:
 
 
 
-    # ======================================================
-    # CONSTRAINT GURU
-    # ======================================================
+
+    # =================================================
+    # GURU TIDAK BOLEH BENTROK
+    # =================================================
 
 
     def constraint_guru_tidak_bentrok(self):
@@ -158,7 +189,9 @@ class Scheduler:
                     daftar = []
 
 
-                    for i,item in enumerate(self.index):
+
+                    for item in self.index:
+
 
 
                         if (
@@ -176,9 +209,12 @@ class Scheduler:
                         ):
 
 
+
                             daftar.append(
 
-                                self.schedule_vars[i]
+                                self.schedule_vars[
+                                    item["id"]
+                                ]
 
                             )
 
@@ -197,9 +233,10 @@ class Scheduler:
 
 
 
-    # ======================================================
-    # CONSTRAINT KELAS
-    # ======================================================
+
+    # =================================================
+    # KELAS TIDAK BOLEH BENTROK
+    # =================================================
 
 
     def constraint_kelas_tidak_bentrok(self):
@@ -218,7 +255,8 @@ class Scheduler:
 
 
 
-                    for i,item in enumerate(self.index):
+                    for item in self.index:
+
 
 
                         if (
@@ -236,9 +274,12 @@ class Scheduler:
                         ):
 
 
+
                             daftar.append(
 
-                                self.schedule_vars[i]
+                                self.schedule_vars[
+                                    item["id"]
+                                ]
 
                             )
 
@@ -249,7 +290,7 @@ class Scheduler:
 
                         self.model.Add(
 
-                            sum(daftar) <= 1
+                            sum(daftar)<=1
 
                         )
 
@@ -257,9 +298,11 @@ class Scheduler:
 
 
 
-    # ======================================================
-    # CONSTRAINT JUMLAH JAM
-    # ======================================================
+
+
+    # =================================================
+    # SESUAI BEBAN JAM MENGAJAR
+    # =================================================
 
 
     def constraint_jumlah_jam(self):
@@ -274,39 +317,26 @@ class Scheduler:
         for _,row in self.data_jadwal.iterrows():
 
 
-            guru = row.get(
-                "guru",
-                None
-            )
 
-
-            kelas = row.get(
-                "kelas",
-                None
-            )
-
-
-            mapel = row.get(
-                "mapel",
-                None
-            )
-
-
-            jam = row.get(
-                "jam",
-                None
-            )
+            try:
 
 
 
-            if None in [
-                guru,
-                kelas,
-                mapel,
-                jam
-            ]:
+                guru = row.iloc[0]
+
+                kelas = row.iloc[1]
+
+                mapel = row.iloc[2]
+
+                jumlah = int(row.iloc[3])
+
+
+
+            except:
+
 
                 continue
+
 
 
 
@@ -314,7 +344,8 @@ class Scheduler:
 
 
 
-            for i,item in enumerate(self.index):
+            for item in self.index:
+
 
 
                 if (
@@ -332,9 +363,12 @@ class Scheduler:
                 ):
 
 
+
                     daftar.append(
 
-                        self.schedule_vars[i]
+                        self.schedule_vars[
+                            item["id"]
+                        ]
 
                     )
 
@@ -347,22 +381,25 @@ class Scheduler:
 
                     sum(daftar)
 
-                    == jam
+                    == jumlah
 
                 )
 
 
 
 
-    # ======================================================
-    # ATURAN JAM JUMAT
-    # ======================================================
+
+
+
+    # =================================================
+    # ATURAN SEKOLAH
+    # =================================================
 
 
     def constraint_jumat(self):
 
 
-        for i,item in enumerate(self.index):
+        for item in self.index:
 
 
             if (
@@ -376,9 +413,12 @@ class Scheduler:
             ):
 
 
+
                 self.model.Add(
 
-                    self.schedule_vars[i]
+                    self.schedule_vars[
+                        item["id"]
+                    ]
 
                     ==0
 
@@ -387,17 +427,15 @@ class Scheduler:
 
 
 
-    # ======================================================
-    # BUILD SEMUA CONSTRAINT
-    # ======================================================
+
+
+
+    # =================================================
+    # SEMUA CONSTRAINT
+    # =================================================
 
 
     def build_constraints(self):
-
-
-        print(
-            "Memasang constraint..."
-        )
 
 
         self.constraint_guru_tidak_bentrok()
@@ -412,111 +450,106 @@ class Scheduler:
         self.constraint_jumat()
 
 
-        print(
-            "Constraint selesai"
+
+        # PAKSA AI MEMILIH JADWAL
+
+        self.model.Maximize(
+
+            sum(
+
+                self.schedule_vars.values()
+
+            )
+
         )
 
-    # ======================================================
-    # SOLVE : MENJALANKAN AI SEARCH
-    # ======================================================
+
+
+
+
+
+    # =================================================
+    # MENJALANKAN AI
+    # =================================================
 
 
     def solve(self):
 
-        """
-        Menjalankan OR-Tools Solver
-        untuk mencari jadwal terbaik
-        """
-
-        print(
-            "AI Scheduler mulai mencari solusi..."
-        )
-
 
         status = self.solver.Solve(
+
             self.model
+
         )
+
 
 
         if status in [
+
             cp_model.OPTIMAL,
+
             cp_model.FEASIBLE
+
         ]:
-
-
-            print(
-                "Solusi jadwal ditemukan"
-            )
 
 
             return True
 
 
-        else:
 
-
-            print(
-                "Tidak ditemukan solusi"
-            )
-
-
-            return False
+        return False
 
 
 
 
 
-    # ======================================================
-    # MENGAMBIL HASIL SOLVER
-    # ======================================================
+    # =================================================
+    # MENGAMBIL HASIL
+    # =================================================
 
 
     def get_result(self):
 
 
-        """
-        Mengambil variabel yang bernilai 1
-        menjadi data jadwal
-        """
-
-
-        hasil = []
+        hasil=[]
 
 
 
-        for i,item in enumerate(self.index):
+        for item in self.index:
+
 
 
             nilai = self.solver.Value(
 
-                self.schedule_vars[i]
+                self.schedule_vars[
+                    item["id"]
+                ]
 
             )
+
 
 
             if nilai == 1:
 
 
+
                 hasil.append({
 
-                    "Hari":
-                        item["hari"],
+
+                    "Hari": item["hari"],
 
 
-                    "Jam":
-                        item["jam"],
+                    "Jam": item["jam"],
 
 
-                    "Kelas":
-                        item["kelas"],
+                    "Kelas": item["kelas"],
 
 
-                    "Mapel":
-                        item["mapel"],
+                    "Mapel": item["mapel"],
 
 
-                    "Guru":
-                        item["guru"]
+                    "Guru": item["guru"]
+
 
                 })
 
@@ -528,18 +561,20 @@ class Scheduler:
 
 
 
-    # ======================================================
-    # HASIL MENJADI DATAFRAME
-    # ======================================================
+
+    # =================================================
+    # DATAFRAME
+    # =================================================
 
 
     def to_dataframe(self):
 
 
-        data = self.get_result()
+        hasil = self.get_result()
 
 
-        if len(data)==0:
+
+        if len(hasil)==0:
 
 
             return pd.DataFrame()
@@ -547,38 +582,51 @@ class Scheduler:
 
 
         df = pd.DataFrame(
-            data
+
+            hasil
+
         )
 
 
-        # urutkan jadwal
 
+        urutan = {
 
-        urutan_hari = {
 
             "Senin":1,
+
             "Selasa":2,
+
             "Rabu":3,
+
             "Kamis":4,
+
             "Jumat":5,
+
             "Sabtu":6
+
 
         }
 
 
-        df["urut_hari"] = (
+
+        df["urut"] = (
 
             df["Hari"]
-            .map(urutan_hari)
+
+            .map(urutan)
 
         )
+
 
 
         df = df.sort_values(
 
             [
-                "urut_hari",
+
+                "urut",
+
                 "Jam",
+
                 "Kelas"
 
             ]
@@ -586,13 +634,13 @@ class Scheduler:
         )
 
 
+
         df = df.drop(
 
-            columns=[
-                "urut_hari"
-            ]
+            columns=["urut"]
 
         )
+
 
 
         return df
