@@ -1,15 +1,20 @@
 import pandas as pd
 from database import load_database
 
+# =====================================
+# LOAD DATABASE
+# =====================================
+
 db = load_database()
 
 guru = db["Guru"]
+mengajar = db["Guru_Mengajar"]
+rombel = db["Rombel"]
+hari_jam = db["Hari_Jam"]
 
-# -----------------------------------
-# Membuat slot jadwal kosong
-# -----------------------------------
-
-jadwal = {}
+# =====================================
+# HARI BELAJAR
+# =====================================
 
 HARI = [
     "Senin",
@@ -18,6 +23,10 @@ HARI = [
     "Kamis",
     "Jumat"
 ]
+
+# =====================================
+# SLOT JAM
+# =====================================
 
 JAM = {
 
@@ -33,69 +42,181 @@ JAM = {
 
 }
 
+# =====================================
+# MEMBUAT SLOT JADWAL
+# =====================================
+
 def buat_slot_jadwal():
 
     jadwal = {}
 
-    kelas = set()
+    daftar_kelas = sorted(
+        rombel["Kelas"].unique()
+    )
 
-    for item in guru["Kelas"]:
+    for kelas in daftar_kelas:
 
-        for k in item.split(","):
-
-            kelas.add(k.strip())
-
-    for k in kelas:
-
-        jadwal[k] = {}
+        jadwal[kelas] = {}
 
         for hari in HARI:
 
-            jadwal[k][hari] = {}
+            jadwal[kelas][hari] = {}
 
             for jam in JAM[hari]:
 
-                jadwal[k][hari][jam] = None
+                jadwal[kelas][hari][jam] = None
 
     return jadwal
 
-def boleh_mengajar(guru_row,hari,jam):
+# =====================================
+# DAFTAR GURU
+# =====================================
 
-    hari_mgmp = guru_row["Hari MGMP"]
+def daftar_guru():
 
-    if hari == hari_mgmp:
+    return guru["Nama Guru"].tolist()
 
-        if jam >= 5:
+# =====================================
+# DAFTAR KELAS
+# =====================================
+
+def daftar_kelas():
+
+    return sorted(
+        rombel["Kelas"].tolist()
+    )
+
+# =====================================
+# DATA MENGAJAR GURU
+# =====================================
+
+def guru_mengajar(id_guru):
+
+    return mengajar[
+        mengajar["ID Guru"] == id_guru
+    ]
+
+# =====================================
+# CEK HARI MGMP
+# =====================================
+
+def hari_mgmp(id_guru):
+
+    data = guru[
+        guru["ID Guru"] == id_guru
+    ]
+
+    if len(data)==0:
+
+        return None
+
+    return data.iloc[0]["Hari MGMP"]
+
+# =====================================
+# CEK PRIORITAS
+# =====================================
+
+def prioritas(id_guru):
+
+    data = guru[
+        guru["ID Guru"] == id_guru
+    ]
+
+    if len(data)==0:
+
+        return 3
+
+    return data.iloc[0]["Prioritas"]
+
+# =====================================
+# CEK BOLEH MENGAJAR
+# =====================================
+
+def boleh_mengajar(id_guru,hari,jam):
+
+    mgmp = hari_mgmp(id_guru)
+
+    if hari == mgmp:
+
+        if jam >=5:
 
             return False
 
     return True
 
-kelas = item.split(",")
+# =====================================
+# MENAMPILKAN SLOT
+# =====================================
 
-pembagian = [2,2,1]
+def tampilkan_slot(jadwal):
 
-# -----------------------------------
-# Program Utama
-# -----------------------------------
+    for kelas in jadwal:
 
-if __name__ == "__main__":
+        print("="*60)
 
-    print("=" * 50)
-    print(" SMART SCHEDULER V7")
-    print("=" * 50)
+        print(kelas)
 
-    jadwal = buat_slot_jadwal()
+        print("="*60)
 
-    print("\nSlot jadwal berhasil dibuat.\n")
+        for hari in jadwal[kelas]:
 
-    print("Jumlah kelas :", len(jadwal))
+            print(hari)
 
-    print("\nDaftar kelas:")
+            for jam in jadwal[kelas][hari]:
 
-    for kelas in sorted(jadwal.keys()):
-        print("-", kelas)
+                print(
+                    jam,
+                    jadwal[kelas][hari][jam]
+                )
 
-    print("\nScheduler siap dijalankan...")
+# =====================================
+# MEMBUAT JADWAL KOSONG
+# =====================================
 
+jadwal = buat_slot_jadwal()
 
+# =====================================
+# MAIN
+# =====================================
+
+if __name__=="__main__":
+
+    print("="*60)
+    print("SMART SCHEDULER V7")
+    print("="*60)
+
+    print()
+
+    print("Jumlah Guru :",len(guru))
+
+    print("Jumlah Kelas :",len(rombel))
+
+    print("Jumlah Data Mengajar :",len(mengajar))
+
+    print()
+
+    print("Daftar Guru")
+
+    print("----------------")
+
+    for g in daftar_guru():
+
+        print(g)
+
+    print()
+
+    print("Daftar Kelas")
+
+    print("----------------")
+
+    for k in daftar_kelas():
+
+        print(k)
+
+    print()
+
+    print("Slot Jadwal berhasil dibuat.")
+
+    print()
+
+    print(jadwal.keys())
