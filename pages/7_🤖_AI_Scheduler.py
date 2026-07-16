@@ -5,21 +5,33 @@ from database import load_database
 from scheduler import Scheduler
 
 
+# ==========================================================
+# KONFIGURASI HALAMAN
+# ==========================================================
+
 st.set_page_config(
+
     page_title="AI Scheduler",
+
     page_icon="🤖",
+
     layout="wide"
+
 )
 
 
-st.title("🤖 AI Scheduler")
-st.caption("Smart Scheduler V7")
+st.title("🤖 AI Scheduler V2")
+
+st.caption(
+    "Smart Scheduler V2 - AI Timetable Generator"
+)
+
+st.divider()
 
 
-
-# ===============================
+# ==========================================================
 # LOAD DATABASE
-# ===============================
+# ==========================================================
 
 try:
 
@@ -27,10 +39,48 @@ try:
 
 except Exception as e:
 
-    st.error("Database gagal dibaca")
+    st.error("Database gagal dibaca.")
+
     st.exception(e)
+
     st.stop()
 
+
+# ==========================================================
+# MEMBACA TABEL
+# ==========================================================
+
+required_tables = [
+
+    "Guru",
+
+    "Guru_Mengajar",
+
+    "Rombel",
+
+    "Mapel",
+
+    "Hari_Jam"
+
+]
+
+missing = [
+
+    table
+
+    for table in required_tables
+
+    if table not in db
+
+]
+
+if missing:
+
+    st.error(
+        f"Tabel berikut belum tersedia : {', '.join(missing)}"
+    )
+
+    st.stop()
 
 
 guru = db["Guru"]
@@ -39,276 +89,297 @@ mengajar = db["Guru_Mengajar"]
 
 rombel = db["Rombel"]
 
+mapel = db["Mapel"]
+
+hari_jam = db["Hari_Jam"]
 
 
-# ===============================
-# STATISTIK
-# ===============================
+# ==========================================================
+# DASHBOARD
+# ==========================================================
 
-c1,c2,c3 = st.columns(3)
+st.subheader("📊 Statistik Database")
+
+c1, c2, c3, c4, c5 = st.columns(5)
 
 c1.metric(
+
     "Guru",
+
     len(guru)
+
 )
 
 c2.metric(
-    "Mengajar",
-    len(mengajar)
+
+    "Mapel",
+
+    len(mapel)
+
 )
 
 c3.metric(
+
     "Rombel",
+
     len(rombel)
+
 )
 
+c4.metric(
+
+    "Mengajar",
+
+    len(mengajar)
+
+)
+
+c5.metric(
+
+    "Hari/Jam",
+
+    len(hari_jam)
+
+)
 
 st.divider()
 
 
+# ==========================================================
+# PREVIEW DATABASE
+# ==========================================================
 
-# ===============================
-# GENERATE
-# ===============================
+with st.expander("📂 Preview Database"):
+
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(
+
+        [
+
+            "Guru",
+
+            "Guru Mengajar",
+
+            "Rombel",
+
+            "Mapel",
+
+            "Hari_Jam"
+
+        ]
+
+    )
+
+    with tab1:
+
+        st.dataframe(
+
+            guru,
+
+            use_container_width=True
+
+        )
+
+    with tab2:
+
+        st.dataframe(
+
+            mengajar,
+
+            use_container_width=True
+
+        )
+
+    with tab3:
+
+        st.dataframe(
+
+            rombel,
+
+            use_container_width=True
+
+        )
+
+    with tab4:
+
+        st.dataframe(
+
+            mapel,
+
+            use_container_width=True
+
+        )
+
+    with tab5:
+
+        st.dataframe(
+
+            hari_jam,
+
+            use_container_width=True
+
+        )
+
+st.divider()
 
 
-if st.button(
+# ==========================================================
+# SESSION STATE
+# ==========================================================
+
+if "jadwal" not in st.session_state:
+
+    st.session_state.jadwal = pd.DataFrame()
+
+if "scheduler" not in st.session_state:
+
+    st.session_state.scheduler = None
+
+
+# ==========================================================
+# TOMBOL GENERATE
+# ==========================================================
+
+generate = st.button(
+
     "🚀 Generate Jadwal",
-    use_container_width=True
-):
 
+    use_container_width=True,
+
+    type="primary"
+
+)
+
+# ==========================================================
+# GENERATE SCHEDULER
+# ==========================================================
+
+if generate:
+
+    st.divider()
+
+    st.subheader("🤖 AI Scheduler")
+
+    progress = st.progress(0)
+
+    status = st.empty()
 
     try:
 
+        # -----------------------------------------------
+        # Membuat Scheduler Engine
+        # -----------------------------------------------
 
-        # ---------------------------
-        # Ambil Guru
-        # ---------------------------
+        status.info("Membuat Scheduler Engine...")
 
-        if "nama_guru" in guru.columns:
+        scheduler = Scheduler(db)
 
-            data_guru = guru["nama_guru"].tolist()
+        st.session_state.scheduler = scheduler
 
-        elif "nama" in guru.columns:
+        progress.progress(10)
 
-            data_guru = guru["nama"].tolist()
-
-        else:
-
-            data_guru = guru.iloc[:,1].tolist()
+        st.success("✅ Scheduler Engine berhasil dibuat")
 
 
+        # -----------------------------------------------
+        # Persiapan Engine
+        # -----------------------------------------------
 
-        # ---------------------------
-        # Ambil Kelas
-        # ---------------------------
+        status.info("Menyiapkan database...")
 
-        if "kelas" in rombel.columns:
+        scheduler.prepare()
 
-            data_kelas = rombel["kelas"].tolist()
+        progress.progress(25)
 
-        elif "nama_kelas" in rombel.columns:
-
-            data_kelas = rombel["nama_kelas"].tolist()
-
-        else:
-
-            data_kelas = rombel.iloc[:,1].tolist()
+        st.success("✅ Database berhasil diproses")
 
 
+        # -----------------------------------------------
+        # Membuat Index
+        # -----------------------------------------------
 
-        # ---------------------------
-        # Ambil Mapel
-        # ---------------------------
-
-        if "mapel" in mengajar.columns:
-
-            data_mapel = (
-                mengajar["mapel"]
-                .unique()
-                .tolist()
-            )
-
-        elif "mata_pelajaran" in mengajar.columns:
-
-            data_mapel = (
-                mengajar["mata_pelajaran"]
-                .unique()
-                .tolist()
-            )
-
-        else:
-
-            data_mapel = (
-                mengajar.iloc[:,1]
-                .unique()
-                .tolist()
-            )
-
-
-
-        st.success(
-            "Database berhasil dibaca"
-        )
-
-
-
-        # ===========================
-        # ENGINE
-        # ===========================
-
-
-        scheduler = Scheduler(
-
-            data_guru,
-
-            data_kelas,
-
-            data_mapel,
-
-            mengajar
-
-        )
-
-
-        st.success(
-            "Scheduler Engine dibuat"
-        )
-
-
+        status.info("Membuat index jadwal...")
 
         scheduler.create_index()
 
+        progress.progress(45)
 
-        st.success(
-            "Index dibuat"
-        )
+        st.success("✅ Index berhasil dibuat")
 
 
+        # -----------------------------------------------
+        # Variable AI
+        # -----------------------------------------------
+
+        status.info("Membuat Variable AI...")
 
         scheduler.create_variables()
 
+        progress.progress(60)
 
-        st.success(
-            "Variable AI dibuat"
-        )
+        st.success("✅ Variable AI berhasil dibuat")
 
 
+        # -----------------------------------------------
+        # Constraint
+        # -----------------------------------------------
+
+        status.info("Memasang Constraint...")
 
         scheduler.build_constraints()
 
+        progress.progress(80)
 
-        st.success(
-            "Constraint dibuat"
-        )
-
+        st.success("✅ Constraint berhasil dipasang")
 
 
-        # ===========================
-        # SOLVER
-        # ===========================
+        # -----------------------------------------------
+        # Solver
+        # -----------------------------------------------
+
+        status.info("Menjalankan AI Solver...")
+
+        hasil = scheduler.solve()
+
+        progress.progress(95)
 
 
-        with st.spinner(
-            "AI mencari jadwal..."
-        ):
+        # -----------------------------------------------
+        # Hasil
+        # -----------------------------------------------
 
+        if hasil:
 
-            hasil_solver = scheduler.solve()
+            jadwal = scheduler.to_dataframe()
 
+            st.session_state.jadwal = jadwal
 
+            progress.progress(100)
 
-        if hasil_solver:
+            status.success("AI berhasil membuat jadwal.")
 
-
-            st.success(
-                "Solver menemukan solusi"
-            )
-
-
-
-            hasil = scheduler.to_dataframe()
-
-
-
-            st.write(
-                "Jumlah Jadwal:",
-                len(hasil)
-            )
-
-
-
-            if len(hasil)>0:
-
-
-                # SIMPAN FILE
-
-                hasil.to_csv(
-
-                    "hasil_jadwal.csv",
-
-                    index=False
-
-                )
-
-
-
-                # SIMPAN SESSION
-
-                st.session_state["jadwal"] = hasil
-
-
-
-                st.success(
-                    "🎉 Jadwal berhasil dibuat dan disimpan"
-                )
-
-
-
-                st.subheader(
-                    "📅 HASIL JADWAL"
-                )
-
-
-                st.dataframe(
-
-                    hasil,
-
-                    use_container_width=True,
-
-                    hide_index=True
-
-                )
-
-
-
-            else:
-
-
-                st.error(
-                    """
-                    Solver berhasil tetapi hasil jadwal kosong.
-
-                    Periksa scheduler.py
-                    """
-                )
-
-
+            st.success("🎉 Jadwal berhasil dibuat")
 
         else:
 
+            status.error("AI tidak menemukan solusi.")
 
             st.error(
-                "AI tidak menemukan jadwal"
+                """
+                Penyebab yang mungkin:
+
+                • JP melebihi slot
+
+                • Guru bentrok
+
+                • Kelas bentrok
+
+                • Constraint terlalu ketat
+                """
             )
-
-
 
     except Exception as e:
 
-
-        st.error(
-            "Terjadi error"
-        )
+        st.error("Terjadi error saat Generate Jadwal")
 
         st.exception(e)
+
