@@ -30,7 +30,6 @@ class ConstraintBuilder:
 
         self.model = variables.model
 
-
     # ==================================================
     # BUILD SEMUA CONSTRAINT
     # ==================================================
@@ -43,16 +42,20 @@ class ConstraintBuilder:
 
         self.constraint_guru()
 
+        self.constraint_kelas()
+
+        print("=" * 60)
+        print("SEMUA CONSTRAINT BERHASIL DIPASANG")
         print("=" * 60)
 
-
     # ==================================================
-    # GURU TIDAK BOLEH BENTROK
+    # CONSTRAINT GURU
+    # Guru tidak boleh mengajar 2 kelas pada jam yang sama
     # ==================================================
 
     def constraint_guru(self):
 
-        print("Constraint Guru ...")
+        print("Memasang Constraint Guru...")
 
         total = 0
 
@@ -65,10 +68,9 @@ class ConstraintBuilder:
             for slot in self.calendar.slot:
 
                 hari = slot["hari"]
-
                 jam = slot["jam"]
 
-                daftar_variable = []
+                variable = []
 
                 data = self.loader.mengajar[
                     self.loader.mengajar[
@@ -98,16 +100,83 @@ class ConstraintBuilder:
 
                     if var is not None:
 
-                        daftar_variable.append(var)
+                        variable.append(var)
 
-                if len(daftar_variable) > 1:
+                if len(variable) > 1:
 
                     self.model.Add(
 
-                        sum(daftar_variable) <= 1
+                        sum(variable) <= 1
 
                     )
 
                     total += 1
 
         print("Constraint Guru :", total)
+
+    # ==================================================
+    # CONSTRAINT KELAS
+    # Satu kelas hanya boleh memiliki
+    # satu mapel pada satu jam
+    # ==================================================
+
+    def constraint_kelas(self):
+
+        print("Memasang Constraint Kelas...")
+
+        total = 0
+
+        daftar_kelas = self.loader.mengajar[
+            self.loader.col_kelas
+        ].unique()
+
+        for kelas in daftar_kelas:
+
+            for slot in self.calendar.slot:
+
+                hari = slot["hari"]
+                jam = slot["jam"]
+
+                variable = []
+
+                data = self.loader.mengajar[
+                    self.loader.mengajar[
+                        self.loader.col_kelas
+                    ] == kelas
+                ]
+
+                for _, row in data.iterrows():
+
+                    guru = row[self.loader.col_guru]
+
+                    mapel = row[self.loader.col_mapel]
+
+                    var = self.variables.get(
+
+                        guru,
+
+                        kelas,
+
+                        mapel,
+
+                        hari,
+
+                        jam
+
+                    )
+
+                    if var is not None:
+
+                        variable.append(var)
+
+                if len(variable) > 1:
+
+                    self.model.Add(
+
+                        sum(variable) <= 1
+
+                    )
+
+                    total += 1
+
+        print("Constraint Kelas :", total)
