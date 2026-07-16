@@ -220,3 +220,216 @@ if __name__=="__main__":
     print()
 
     print(jadwal.keys())
+
+# =====================================
+# MENGUBAH PEMBAGIAN JP
+# =====================================
+
+def pembagian_jp(teks):
+
+    """
+    Mengubah:
+    2,2,1  -> [2,2,1]
+    3      -> [3]
+    2,2    -> [2,2]
+    """
+
+    if pd.isna(teks):
+        return []
+
+    teks = str(teks)
+
+    hasil = []
+
+    for x in teks.split(","):
+
+        hasil.append(int(x.strip()))
+
+    return hasil
+
+
+# =====================================
+# DATA MENGAJAR BERDASARKAN PRIORITAS
+# =====================================
+
+def data_prioritas():
+
+    data = mengajar.merge(
+        guru[
+            [
+                "ID Guru",
+                "Hari MGMP",
+                "Prioritas"
+            ]
+        ],
+        on="ID Guru"
+    )
+
+    data = data.sort_values(
+        by="Prioritas"
+    )
+
+    return data.reset_index(drop=True)
+
+
+# =====================================
+# CEK SLOT KOSONG
+# =====================================
+
+def slot_kosong(jadwal, kelas, hari, jam):
+
+    return jadwal[kelas][hari][jam] is None
+
+
+# =====================================
+# CEK GURU SUDAH MENGAJAR
+# =====================================
+
+def guru_bentrok(jadwal, nama_guru, hari, jam):
+
+    for kelas in jadwal:
+
+        isi = jadwal[kelas][hari][jam]
+
+        if isi is None:
+            continue
+
+        if isi["Guru"] == nama_guru:
+            return True
+
+    return False
+
+
+# =====================================
+# MENEMPATKAN SATU JP
+# =====================================
+
+def isi_slot(
+    jadwal,
+    kelas,
+    hari,
+    jam,
+    guru_nama,
+    mapel,
+):
+
+    jadwal[kelas][hari][jam] = {
+
+        "Guru": guru_nama,
+
+        "Mapel": mapel
+
+    }
+
+
+# =====================================
+# MENCARI SLOT BERURUT
+# =====================================
+
+def cari_slot(
+    jadwal,
+    kelas,
+    nama_guru,
+    hari,
+    panjang
+):
+
+    daftar = JAM[hari]
+
+    for awal in daftar:
+
+        akhir = awal + panjang - 1
+
+        if akhir not in daftar:
+            continue
+
+        boleh = True
+
+        for j in range(awal, akhir + 1):
+
+            if not slot_kosong(
+                jadwal,
+                kelas,
+                hari,
+                j
+            ):
+
+                boleh = False
+
+                break
+
+            if guru_bentrok(
+                jadwal,
+                nama_guru,
+                hari,
+                j
+            ):
+
+                boleh = False
+
+                break
+
+        if boleh:
+
+            return awal
+
+    return None
+
+
+# =====================================
+# MENEMPATKAN SATU BLOK JP
+# =====================================
+
+def tempatkan_blok(
+    jadwal,
+    kelas,
+    guru_id,
+    guru_nama,
+    mapel,
+    panjang
+):
+
+    for hari in HARI:
+
+        if hari == "Jumat" and panjang > 2:
+            continue
+
+        for jam in JAM[hari]:
+
+            if not boleh_mengajar(
+                guru_id,
+                hari,
+                jam
+            ):
+                continue
+
+        awal = cari_slot(
+            jadwal,
+            kelas,
+            guru_nama,
+            hari,
+            panjang
+        )
+
+        if awal is None:
+            continue
+
+        for j in range(
+            awal,
+            awal + panjang
+        ):
+
+            isi_slot(
+                jadwal,
+                kelas,
+                hari,
+                j,
+                guru_nama,
+                mapel
+            )
+
+        return True
+
+    return False
+
+
