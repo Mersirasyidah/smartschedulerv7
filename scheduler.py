@@ -8,13 +8,12 @@ HARI = [
     "Selasa",
     "Rabu",
     "Kamis",
-    "Jumat",
-    "Sabtu"
+    "Jumat"
 ]
 
 
 JAM = [
-    1,2,3,4,5,6,7,8
+    1,2,3,4,5,6
 ]
 
 
@@ -31,98 +30,66 @@ class Scheduler:
     ):
 
 
-        self.data_guru = data_guru
+        self.data_jadwal=data_jadwal
 
-        self.data_kelas = data_kelas
+        self.model=cp_model.CpModel()
 
-        self.data_mapel = data_mapel
+        self.solver=cp_model.CpSolver()
 
-        self.data_jadwal = data_jadwal
+        self.index=[]
 
-
-
-        self.model = cp_model.CpModel()
-
-        self.solver = cp_model.CpSolver()
-
-
-        self.index = []
-
-        self.schedule_vars = {}
+        self.vars={}
 
 
 
-
-
-    # =====================================
-    # MEMBUAT INDEX JADWAL
-    # =====================================
 
     def create_index(self):
 
 
-        no = 0
+        no=0
 
 
-        for _, row in self.data_jadwal.iterrows():
+        for _,r in self.data_jadwal.iterrows():
 
 
-            guru = row["Nama Guru"]
+            for h in HARI:
 
-            mapel = row["Mapel"]
-
-            kelas = row["Kelas"]
-
-
-
-            for hari in HARI:
-
-
-                for jam in JAM:
+                for j in JAM:
 
 
                     self.index.append({
 
                         "id":no,
 
-                        "guru":guru,
+                        "guru":r["Nama Guru"],
 
-                        "mapel":mapel,
+                        "kelas":r["Kelas"],
 
-                        "kelas":kelas,
+                        "mapel":r["Mapel"],
 
-                        "hari":hari,
+                        "hari":h,
 
-                        "jam":jam
+                        "jam":j
 
                     })
 
 
-                    no += 1
+                    no+=1
 
 
 
-        return self.index
-
-
-
-
-
-    # =====================================
-    # VARIABLE
-    # =====================================
 
     def create_variables(self):
 
 
-        for item in self.index:
+        for x in self.index:
 
 
-            self.schedule_vars[item["id"]] = (
+            self.vars[x["id"]]=(
 
                 self.model.NewBoolVar(
 
-                    "jadwal_"+str(item["id"])
+                    f"x{x['id']}"
 
                 )
 
@@ -132,357 +99,150 @@ class Scheduler:
 
 
 
+    def build_constraints(self):
 
 
-    # =====================================
-    # GURU TIDAK BENTROK
-    # =====================================
-
-
-    def constraint_guru(self):
-
-
-        for guru in self.data_guru:
-
-
-            for hari in HARI:
-
-
-                for jam in JAM:
-
-
-                    daftar=[]
-
-
-                    for item in self.index:
-
-
-                        if (
-
-                            item["guru"]==guru
-
-                            and
-
-                            item["hari"]==hari
-
-                            and
-
-                            item["jam"]==jam
-
-                        ):
-
-
-                            daftar.append(
-
-                                self.schedule_vars[item["id"]]
-
-                            )
-
-
-
-                    if daftar:
-
-
-                        self.model.Add(
-
-                            sum(daftar)<=1
-
-                        )
-
-
-
-
-
-
-
-
-    # =====================================
-    # KELAS TIDAK BENTROK
-    # =====================================
-
-
-    def constraint_kelas(self):
-
-
-        for kelas in self.data_kelas:
-
-
-            for hari in HARI:
-
-
-                for jam in JAM:
-
-
-                    daftar=[]
-
-
-                    for item in self.index:
-
-
-                        if (
-
-                            item["kelas"]==kelas
-
-                            and
-
-                            item["hari"]==hari
-
-                            and
-
-                            item["jam"]==jam
-
-                        ):
-
-
-                            daftar.append(
-
-                                self.schedule_vars[item["id"]]
-
-                            )
-
-
-
-                    if daftar:
-
-
-                        self.model.Add(
-
-                            sum(daftar)<=1
-
-                        )
-
-
-
-
-
-
-
-
-    # =====================================
-    # SESUAI JP
-    # =====================================
-
-
-    def constraint_jp(self):
-
-
-        for _,row in self.data_jadwal.iterrows():
-
-
-            guru = row["Nama Guru"]
-
-            mapel = row["Mapel"]
-
-            kelas = row["Kelas"]
-
-            jp = int(row["JP"])
-
+        for _,r in self.data_jadwal.iterrows():
 
 
             daftar=[]
 
 
-            for item in self.index:
+            for x in self.index:
 
 
                 if (
 
-                    item["guru"]==guru
+                    x["guru"]==r["Nama Guru"]
 
                     and
 
-                    item["mapel"]==mapel
+                    x["kelas"]==r["Kelas"]
 
                     and
 
-                    item["kelas"]==kelas
+                    x["mapel"]==r["Mapel"]
 
                 ):
 
 
                     daftar.append(
 
-                        self.schedule_vars[item["id"]]
+                        self.vars[x["id"]]
 
                     )
 
 
+            self.model.Add(
 
-            if daftar:
+                sum(daftar)
 
+                == int(r["JP"])
 
-                self.model.Add(
-
-                    sum(daftar)==jp
-
-                )
+            )
 
 
 
+        # guru tidak bentrok
+
+
+        for x in self.index:
+
+
+            daftar=[]
+
+
+            for y in self.index:
+
+
+                if (
+
+                    x["guru"]==y["guru"]
+
+                    and
+
+                    x["hari"]==y["hari"]
+
+                    and
+
+                    x["jam"]==y["jam"]
+
+                ):
+
+
+                    daftar.append(
+
+                        self.vars[y["id"]]
+
+                    )
+
+
+            self.model.Add(
+
+                sum(daftar)<=1
+
+            )
 
 
 
 
-    # =====================================
-    # CONSTRAINT
-    # =====================================
-
-    def build_constraints(self):
-
-
-        self.constraint_guru()
-
-
-        self.constraint_kelas()
-
-
-        self.constraint_jp()
-
-
-        print(
-            "Jumlah Index :",
-            len(self.index)
-        )
-
-
-        print(
-            "Jumlah Variable :",
-            len(self.schedule_vars)
-        )
-
-
-
-
-
-
-
-    # =====================================
-    # SOLVER
-    # =====================================
 
     def solve(self):
 
 
-        self.solver.parameters.max_time_in_seconds = 60
-
-
-
-        status = self.solver.Solve(
+        status=self.solver.Solve(
 
             self.model
 
         )
 
 
-
         print(
-            "STATUS SOLVER :",
+            "STATUS",
             status
         )
 
 
-
-        if status in [
+        return status in [
 
             cp_model.FEASIBLE,
 
             cp_model.OPTIMAL
 
-        ]:
+        ]
 
 
-            return True
-
-
-
-        return False
-
-
-
-
-
-
-
-    # =====================================
-    # HASIL
-    # =====================================
-
-
-    def get_result(self):
-
-
-        hasil=[]
-
-
-        for item in self.index:
-
-
-            nilai = self.solver.Value(
-
-                self.schedule_vars[item["id"]]
-
-            )
-
-
-            if nilai==1:
-
-
-                hasil.append({
-
-                    "Hari":
-                    item["hari"],
-
-
-                    "Jam":
-                    item["jam"],
-
-
-                    "Kelas":
-                    item["kelas"],
-
-
-                    "Mapel":
-                    item["mapel"],
-
-
-                    "Guru":
-                    item["guru"]
-
-                })
-
-
-        return hasil
-
-
-
-
-
-
-    # =====================================
-    # DATAFRAME
-    # =====================================
 
 
     def to_dataframe(self):
 
 
-        data = self.get_result()
+        hasil=[]
 
 
-        print(
-            "Jumlah hasil :",
-            len(data)
-        )
+        for x in self.index:
 
 
-        if not data:
+            if self.solver.Value(
+
+                self.vars[x["id"]]
+
+            )==1:
 
 
-            return pd.DataFrame()
+                hasil.append({
+
+                    "Hari":x["hari"],
+
+                    "Jam":x["jam"],
+
+                    "Kelas":x["kelas"],
+
+                    "Mapel":x["mapel"],
+
+                    "Guru":x["guru"]
+
+                })
 
 
-
-        df=pd.DataFrame(data)
-
-
-        return df
+        return pd.DataFrame(hasil)
