@@ -5,6 +5,9 @@ CALENDAR ENGINE
 ====================================================
 """
 
+from collections import defaultdict
+
+
 class CalendarEngine:
 
     def __init__(self, loader):
@@ -15,17 +18,25 @@ class CalendarEngine:
 
         self.slot_index = {}
 
+        self.day_slots = defaultdict(list)
+
+        self.total_slot = 0
+
     # ==================================================
-    # MEMBUAT SLOT PEMBELAJARAN
+    # MEMBANGUN SLOT PEMBELAJARAN
     # ==================================================
 
     def build(self):
 
         print("=" * 60)
-        print("MEMBANGUN SLOT PEMBELAJARAN")
+        print("MEMBANGUN CALENDAR")
         print("=" * 60)
 
         nomor = 1
+
+        self.slot = []
+        self.slot_index = {}
+        self.day_slots = defaultdict(list)
 
         for _, row in self.loader.hari_jam.iterrows():
 
@@ -41,7 +52,7 @@ class CalendarEngine:
             if jenis != "pembelajaran":
                 continue
 
-            self.slot.append({
+            item = {
 
                 "id": nomor,
 
@@ -49,18 +60,35 @@ class CalendarEngine:
 
                 "jam": jam
 
-            })
+            }
 
-            self.slot_index[(hari, jam)] = nomor
+            self.slot.append(item)
+
+            self.slot_index[(hari, jam)] = item
+
+            self.day_slots[hari].append(item)
 
             nomor += 1
 
-        print("Jumlah Slot :", len(self.slot))
+        # urutkan setiap hari
+        for hari in self.day_slots:
+
+            self.day_slots[hari] = sorted(
+
+                self.day_slots[hari],
+
+                key=lambda x: x["jam"]
+
+            )
+
+        self.total_slot = len(self.slot)
+
+        print("Total Slot :", self.total_slot)
 
         print("=" * 60)
 
     # ==================================================
-    # MENGAMBIL SLOT
+    # SEMUA SLOT
     # ==================================================
 
     def get_slots(self):
@@ -68,48 +96,131 @@ class CalendarEngine:
         return self.slot
 
     # ==================================================
-    # MENGAMBIL SLOT BERDASARKAN HARI
+    # SLOT PER HARI
     # ==================================================
 
     def get_slots_by_day(self, hari):
 
-        hasil = []
-
-        for slot in self.slot:
-
-            if slot["hari"] == hari:
-
-                hasil.append(slot)
-
-        return hasil
+        return self.day_slots.get(hari, [])
 
     # ==================================================
-    # MENGAMBIL SLOT BERDASARKAN JAM
+    # SLOT BERDASARKAN HARI DAN JAM
     # ==================================================
 
-    def get_slots_by_hour(self, jam):
-
-        hasil = []
-
-        for slot in self.slot:
-
-            if slot["jam"] == jam:
-
-                hasil.append(slot)
-
-        return hasil
-
-    # ==================================================
-    # CARI SLOT
-    # ==================================================
-
-    def find_slot(self, hari, jam):
+    def get_slot(self, hari, jam):
 
         return self.slot_index.get(
 
             (hari, jam),
 
             None
+
+        )
+
+    # ==================================================
+    # SLOT BERIKUTNYA
+    # ==================================================
+
+    def next_slot(self, hari, jam):
+
+        data = self.day_slots.get(hari, [])
+
+        for i in range(len(data) - 1):
+
+            if data[i]["jam"] == jam:
+
+                return data[i + 1]
+
+        return None
+
+    # ==================================================
+    # SLOT SEBELUMNYA
+    # ==================================================
+
+    def previous_slot(self, hari, jam):
+
+        data = self.day_slots.get(hari, [])
+
+        for i in range(1, len(data)):
+
+            if data[i]["jam"] == jam:
+
+                return data[i - 1]
+
+        return None
+
+    # ==================================================
+    # SLOT BERURUTAN
+    # ==================================================
+
+    def consecutive_slots(
+
+        self,
+
+        hari,
+
+        jam,
+
+        panjang
+
+    ):
+
+        hasil = []
+
+        data = self.day_slots.get(hari, [])
+
+        posisi = None
+
+        for i, slot in enumerate(data):
+
+            if slot["jam"] == jam:
+
+                posisi = i
+
+                break
+
+        if posisi is None:
+
+            return hasil
+
+        akhir = posisi + panjang
+
+        if akhir > len(data):
+
+            return hasil
+
+        hasil = data[posisi:akhir]
+
+        if len(hasil) != panjang:
+
+            return []
+
+        # memastikan jam benar-benar berurutan
+        for i in range(len(hasil) - 1):
+
+            if hasil[i + 1]["jam"] != hasil[i]["jam"] + 1:
+
+                return []
+
+        return hasil
+
+    # ==================================================
+    # DAFTAR HARI
+    # ==================================================
+
+    def days(self):
+
+        return list(self.day_slots.keys())
+
+    # ==================================================
+    # JUMLAH SLOT HARI
+    # ==================================================
+
+    def total_slot_day(self, hari):
+
+        return len(
+
+            self.day_slots.get(hari, [])
 
         )
 
@@ -136,19 +247,19 @@ class CalendarEngine:
     def statistics(self):
 
         print("=" * 60)
-        print("STATISTIK SLOT")
+        print("STATISTIK CALENDAR")
         print("=" * 60)
 
-        hari = {}
+        print("Total Slot :", self.total_slot)
 
-        for slot in self.slot:
+        for hari in self.day_slots:
 
-            h = slot["hari"]
+            print(
 
-            hari[h] = hari.get(h, 0) + 1
+                f"{hari:10} : "
 
-        for h in hari:
+                f"{len(self.day_slots[hari])} slot"
 
-            print(f"{h:10} : {hari[h]} slot")
+            )
 
         print("=" * 60)
