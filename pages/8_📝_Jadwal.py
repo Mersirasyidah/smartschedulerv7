@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 
 
 st.set_page_config(
@@ -6,6 +7,7 @@ st.set_page_config(
     page_icon="📅",
     layout="wide"
 )
+
 
 
 st.title(
@@ -19,43 +21,51 @@ st.caption(
 
 
 
-# =====================================
-# CEK HASIL GENERATE
-# =====================================
+# ===============================
+# AMBIL DATA
+# ===============================
 
 
-if "jadwal" not in st.session_state:
+if "jadwal" in st.session_state:
 
 
-    st.warning(
-        """
-        Jadwal belum tersedia.
-
-        Silakan masuk ke menu:
-        🤖 AI Scheduler
-
-        kemudian klik:
-        🚀 Generate Jadwal
-        """
-    )
+    jadwal = st.session_state["jadwal"]
 
 
-    st.stop()
+else:
+
+
+    try:
+
+        jadwal = pd.read_csv(
+            "hasil_jadwal.csv"
+        )
+
+
+    except:
+
+
+        st.warning(
+            """
+            Jadwal belum tersedia.
+
+            Silakan Generate Jadwal terlebih dahulu.
+            """
+        )
+
+        st.stop()
 
 
 
-jadwal = st.session_state["jadwal"]
+# ===============================
+# TAMPILKAN
+# ===============================
 
 
-
-# =====================================
-# TAMPILKAN SEMUA
-# =====================================
-
-
-st.subheader(
-    "📋 Semua Jadwal"
+st.success(
+    "Jadwal ditemukan"
 )
+
 
 
 st.dataframe(
@@ -74,14 +84,15 @@ st.divider()
 
 
 
-# =====================================
-# PER KELAS
-# =====================================
+# ===============================
+# FILTER KELAS
+# ===============================
 
 
 st.subheader(
     "🏫 Jadwal Per Kelas"
 )
+
 
 
 kelas = st.selectbox(
@@ -97,7 +108,7 @@ kelas = st.selectbox(
 st.dataframe(
 
     jadwal[
-        jadwal["Kelas"] == kelas
+        jadwal["Kelas"]==kelas
     ],
 
     use_container_width=True,
@@ -112,14 +123,15 @@ st.divider()
 
 
 
-# =====================================
-# PER GURU
-# =====================================
+# ===============================
+# FILTER GURU
+# ===============================
 
 
 st.subheader(
     "👨‍🏫 Jadwal Per Guru"
 )
+
 
 
 guru = st.selectbox(
@@ -135,7 +147,7 @@ guru = st.selectbox(
 st.dataframe(
 
     jadwal[
-        jadwal["Guru"] == guru
+        jadwal["Guru"]==guru
     ],
 
     use_container_width=True,
