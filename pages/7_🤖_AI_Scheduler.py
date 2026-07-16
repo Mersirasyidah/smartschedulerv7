@@ -461,11 +461,51 @@ if st.button(
     st.divider()
 
 
+# =================================
+# JALANKAN AI SOLVER
+# =================================
+
+
+with st.spinner(
+    "🤖 AI sedang mencari jadwal terbaik..."
+):
+
+
+    solusi = scheduler.solve()
+
+
+
+if solusi:
+
+
     st.success(
+        "🎉 Jadwal berhasil dibuat"
+    )
+
+
+    hasil = scheduler.to_dataframe()
+
+
+    st.subheader(
+        "📅 Hasil Jadwal"
+    )
+
+
+    st.dataframe(
+
+        hasil,
+
+        use_container_width=True
+
+    )
+
+
+else:
+
+
+    st.error(
         """
-        🤖 AI Scheduler Engine siap.
-        
-        Tahap berikutnya:
-        Solver akan mencari kombinasi jadwal terbaik.
+        AI tidak menemukan jadwal.
+        Kemungkinan ada aturan yang bertentangan.
         """
     )
