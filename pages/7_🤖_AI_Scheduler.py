@@ -55,7 +55,7 @@ mapel = db["Mapel"]
 hari_jam = db["Hari_Jam"]
 
 # ==========================================================
-# DASHBOARD
+# DASHBOARD STATISTIK
 # ==========================================================
 st.subheader("📊 Statistik Database")
 c1, c2, c3, c4, c5 = st.columns(5)
@@ -110,7 +110,7 @@ generate = st.button(
 )
 
 # ==========================================================
-# GENERATE SCHEDULER (ALUR EKSEKUSI V2)
+# GENERATE SCHEDULER (ALUR EKSEKUSI V2 + FITUR AUTO-DEBUGGING)
 # ==========================================================
 if generate:
     st.divider()
@@ -123,12 +123,43 @@ if generate:
         status.info("Membuat Scheduler Engine...")
         scheduler = Scheduler(db)
         st.session_state.scheduler = scheduler
-        progress.progress(20)
+        progress.progress(15)
 
         # 2. Persiapan Data & Slot Pembelajaran
         status.info("Mempersiapkan slot pembelajaran & index database...")
         scheduler.prepare_engine()
-        progress.progress(50)
+        progress.progress(35)
+
+        # --------------------------------------------------
+        # 🔍 KOTAK ANALISIS KAPASITAS OTOMATIS (DEBUGGING)
+        # --------------------------------------------------
+        status.info("Menganalisis kapasitas data sekolah...")
+        total_jp = int(scheduler.mengajar[scheduler.col_jp].sum())
+        total_slot = len(scheduler.slot)
+        total_kelas = len(scheduler.rombel)
+        kapasitas_maks = total_kelas * total_slot
+        
+        st.info(f"""
+        **📋 Hasil Audit Kapasitas Excel Anda:**
+        *   Total JP yang diminta di Excel: **{total_jp} JP**
+        *   Jumlah Rombel/Kelas: **{total_kelas} Kelas**
+        *   Jumlah Slot Waktu Mengajar (per Minggu): **{total_slot} Slot**
+        *   Kapasitas Maksimal Sekolah: **{kapasitas_maks} JP** (yaitu: {total_kelas} Kelas × {total_slot} Slot)
+        """)
+        
+        # Evaluasi Kelayakan Matematis
+        if total_jp > kapasitas_maks:
+            st.error(
+                f"🚨 **KESALAHAN DATA:** Total JP ({total_jp} JP) melebihi kapasitas maksimal sekolah ({kapasitas_maks} JP)! "
+                f"Silakan kurangi atau pangkas minimal **{total_jp - kapasitas_maks} JP** pada file Excel Anda "
+                f"di sheet `Guru_Mengajar` sebelum menjalankan ulang aplikasi ini."
+            )
+            progress.progress(100)
+            status.error("Proses dihentikan karena keterbatasan kapasitas slot.")
+            st.stop()
+        else:
+            st.success("✅ Kapasitas slot secara matematis mencukupi! Melanjutkan kompilasi AI...")
+            progress.progress(50)
 
         # 3. Proses Solving (Variabel & Constraint ditangani di dalam .solve())
         status.info("Menjalankan AI Solver (Mengompilasi Constraint & Optimasi CP-SAT)...")
@@ -147,9 +178,9 @@ if generate:
             st.error(
                 """
                 **Penyebab yang mungkin terjadi:**
-                * Jumlah Jam Pelajaran (JP) melebihi slot waktu mengajar yang tersedia di kalender.
-                * Guru atau Kelas mengalami bentrok jadwal yang tidak bisa dihindari.
-                * Parameter pembagian waktu atau aturan constraint terlalu ketat untuk diselesaikan.
+                *   **Beban Mengajar Guru Terlalu Tinggi:** Ada guru dengan jam mengajar mingguan yang melebihi jumlah hari kerja sekolah.
+                *   **Aturan Bentrok:** Kombinasi ketersediaan guru sangat sempit (misal banyak guru meminta hari libur yang sama di MGMP).
+                *   **Kapasitas Terlalu Mepet:** Meskipun secara matematis cukup, data JP yang terlalu mendekati limit slot maksimal membuat AI kesulitan menemukan celah jadwal yang bebas bentrok.
                 """
             )
     except Exception as e:
