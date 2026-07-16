@@ -415,3 +415,184 @@ class Scheduler:
         print(
             "Constraint selesai"
         )
+
+    # ======================================================
+    # SOLVE : MENJALANKAN AI SEARCH
+    # ======================================================
+
+
+    def solve(self):
+
+        """
+        Menjalankan OR-Tools Solver
+        untuk mencari jadwal terbaik
+        """
+
+        print(
+            "AI Scheduler mulai mencari solusi..."
+        )
+
+
+        status = self.solver.Solve(
+            self.model
+        )
+
+
+        if status in [
+            cp_model.OPTIMAL,
+            cp_model.FEASIBLE
+        ]:
+
+
+            print(
+                "Solusi jadwal ditemukan"
+            )
+
+
+            return True
+
+
+        else:
+
+
+            print(
+                "Tidak ditemukan solusi"
+            )
+
+
+            return False
+
+
+
+
+
+    # ======================================================
+    # MENGAMBIL HASIL SOLVER
+    # ======================================================
+
+
+    def get_result(self):
+
+
+        """
+        Mengambil variabel yang bernilai 1
+        menjadi data jadwal
+        """
+
+
+        hasil = []
+
+
+
+        for i,item in enumerate(self.index):
+
+
+            nilai = self.solver.Value(
+
+                self.schedule_vars[i]
+
+            )
+
+
+            if nilai == 1:
+
+
+                hasil.append({
+
+                    "Hari":
+                        item["hari"],
+
+
+                    "Jam":
+                        item["jam"],
+
+
+                    "Kelas":
+                        item["kelas"],
+
+
+                    "Mapel":
+                        item["mapel"],
+
+
+                    "Guru":
+                        item["guru"]
+
+                })
+
+
+
+        return hasil
+
+
+
+
+
+    # ======================================================
+    # HASIL MENJADI DATAFRAME
+    # ======================================================
+
+
+    def to_dataframe(self):
+
+
+        data = self.get_result()
+
+
+        if len(data)==0:
+
+
+            return pd.DataFrame()
+
+
+
+        df = pd.DataFrame(
+            data
+        )
+
+
+        # urutkan jadwal
+
+
+        urutan_hari = {
+
+            "Senin":1,
+            "Selasa":2,
+            "Rabu":3,
+            "Kamis":4,
+            "Jumat":5,
+            "Sabtu":6
+
+        }
+
+
+        df["urut_hari"] = (
+
+            df["Hari"]
+            .map(urutan_hari)
+
+        )
+
+
+        df = df.sort_values(
+
+            [
+                "urut_hari",
+                "Jam",
+                "Kelas"
+
+            ]
+
+        )
+
+
+        df = df.drop(
+
+            columns=[
+                "urut_hari"
+            ]
+
+        )
+
+
+        return df
